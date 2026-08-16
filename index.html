@@ -1,0 +1,3406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>男装期货开发 · 四维匹配看板</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+:root{
+  /* ===== PRADA F/W 2013 Design Tokens (restored deep + clearer color separation) ===== */
+  --prada-charcoal:#2C2E30;
+  --prada-olive:#89896C;
+  --prada-olive-dark:#6E6E55;
+  --prada-olive-soft:#A6A687;
+  --prada-teal:#7AA5A4;            /* 更亮的青绿 (与 danger 拉开) */
+  --prada-teal-dark:#527877;        /* 旧值保留用于边框 */
+  --prada-gold:#D4B571;             /* 更亮的金 (更醒目) */
+  --prada-gold-dark:#C2A35E;        /* 旧值保留用于边框 */
+  --prada-graphite:#4A4D52;
+  --prada-sand:#C8B98E;             /* 更亮的沙 */
+  --prada-sand-dark:#AEA684;
+  --prada-white:#FFFFFF;
+  --prada-black:#0A0A0A;
+  --prada-red:#E74C3C;              /* 鲜明的砖红 (与 teal/gold 明显区分) */
+  --prada-red-dark:#8B3A3A;        /* 保留用于深背景 */
+
+  /* Semantic mapping */
+  --bg:var(--prada-olive);
+  --bg-card:var(--prada-charcoal);
+  --bg-soft:var(--prada-graphite);
+  --border:rgba(255,255,255,0.12);
+  --border-strong:rgba(255,255,255,0.22);
+  --border-soft:rgba(0,0,0,0.3);
+  --text:var(--prada-white);
+  --text-muted:rgba(255,255,255,0.65);
+  --text-light:rgba(255,255,255,0.45);
+  --primary:var(--prada-white);
+  --primary-soft:rgba(255,255,255,0.06);
+  --accent:var(--prada-gold);
+  --accent-soft:rgba(212,181,113,0.18);
+  --success:var(--prada-teal);       /* #7AA5A4 */
+  --success-soft:rgba(122,165,164,0.18);
+  --warning:var(--prada-gold);       /* #D4B571 */
+  --warning-soft:rgba(212,181,113,0.18);
+  --danger:var(--prada-red);         /* #E74C3C — 鲜明区分 */
+  --danger-soft:rgba(231,76,60,0.18);
+
+  /* Flat — no soft shadows */
+  --shadow-sm:none;
+  --shadow-md:none;
+  --shadow-lg:none;
+
+  /* Strictly rectilinear */
+  --radius-sm:0px;
+  --radius:0px;
+  --radius-lg:0px;
+
+  /* Typography */
+  --font-serif:"Bodoni 72","Didot","Times New Roman",Georgia,serif;
+  --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --tracking-tight:0.02em;
+  --tracking-moderate:0.05em;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  font-family:var(--font-sans);
+  color:var(--text);
+  background:var(--bg);
+  font-size:14px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(0,0,0,0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(0,0,0,0.1) 0%, transparent 50%);
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit;font-size:inherit;color:inherit}
+table{border-collapse:collapse;width:100%}
+
+/* ========== HEADER ========== */
+header.app-header{
+  position:sticky;top:0;z-index:100;
+  background:var(--prada-graphite);
+  border-bottom:1px solid var(--prada-gold);
+  height:80px;
+  box-shadow:0 1px 0 rgba(0,0,0,0.15);
+}
+header.app-header .inner{
+  max-width:1440px;margin:0 auto;height:100%;
+  padding:0 32px;display:flex;align-items:center;gap:32px;
+}
+.brand{display:flex;align-items:center;gap:16px;font-weight:600;color:var(--prada-white)}
+.brand-mark{
+  width:48px;height:48px;border-radius:0;
+  background:var(--prada-gold);
+  display:grid;place-items:center;color:var(--prada-black);font-weight:700;font-size:18px;
+  letter-spacing:-.5px;
+  font-family:var(--font-serif);
+}
+.brand-title{
+  font-family:var(--font-serif);
+  font-size:20px;font-weight:700;letter-spacing:var(--tracking-tight);
+  text-transform:uppercase;color:var(--prada-white);
+}
+.brand-sub{
+  font-size:12px;color:var(--prada-sand);font-weight:300;
+  margin-top:2px;letter-spacing:var(--tracking-moderate);text-transform:uppercase;
+}
+nav.top-nav{display:flex;gap:2px;margin-left:24px}
+nav.top-nav a{
+  padding:10px 16px;border-radius:0;color:var(--text-muted);
+  text-decoration:none;font-size:12px;font-weight:500;
+  letter-spacing:var(--tracking-moderate);text-transform:uppercase;
+  border-bottom:2px solid transparent;
+  transition:all .15s ease;
+}
+nav.top-nav a:hover{color:var(--prada-white);border-bottom-color:var(--prada-gold)}
+nav.top-nav a.active{
+  color:var(--prada-gold);
+  border-bottom-color:var(--prada-gold);
+  font-weight:700;
+}
+.header-actions{margin-left:auto;display:flex;gap:12px;align-items:center}
+
+/* ========== BUTTONS ========== */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:9px 16px;border-radius:0;
+  font-size:12px;font-weight:600;
+  letter-spacing:var(--tracking-moderate);
+  text-transform:uppercase;
+  transition:all .15s ease;
+  border:1px solid transparent;
+}
+.btn-primary{background:var(--prada-gold);color:var(--prada-black);border-color:var(--prada-gold)}
+.btn-primary:hover{background:var(--prada-white);border-color:var(--prada-white)}
+.btn-secondary{background:transparent;color:var(--prada-white);border-color:var(--prada-white)}
+.btn-secondary:hover{background:var(--prada-white);color:var(--prada-black)}
+.btn-ghost{background:transparent;color:var(--text-muted)}
+.btn-ghost:hover{color:var(--prada-white)}
+.btn-danger{background:var(--danger);color:var(--prada-white);border-color:var(--danger)}
+.btn-danger:hover{background:#6B2C2C}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+/* ========== LAYOUT ========== */
+main{
+  max-width:1440px;margin:0 auto;padding:32px;
+  display:flex;flex-direction:column;gap:24px;
+}
+.page-title{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid rgba(0,0,0,0.3)}
+.page-title h1{
+  font-family:var(--font-serif);font-size:40px;font-weight:700;
+  letter-spacing:var(--tracking-tight);color:var(--prada-white);
+  text-transform:uppercase;
+}
+.page-title p{color:var(--text-muted);font-size:13px;margin-top:8px;letter-spacing:var(--tracking-moderate);text-transform:uppercase}
+
+/* ========== CARD ========== */
+.card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:0;
+  box-shadow:none;
+  overflow:hidden;
+  position:relative;
+}
+.card::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:var(--prada-gold);
+}
+.card-head{
+  padding:24px 28px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  background:linear-gradient(90deg,rgba(194,163,94,0.04),transparent);
+}
+.card-head h2{
+  font-family:var(--font-serif);font-size:28px;font-weight:700;
+  letter-spacing:var(--tracking-tight);color:var(--prada-white);
+  text-transform:uppercase;
+}
+.card-head .sub{font-size:12px;color:var(--text-muted);margin-top:4px;letter-spacing:var(--tracking-moderate);text-transform:uppercase}
+.card-head .actions{display:flex;gap:8px;align-items:center}
+.card-body{padding:28px}
+.module-label{
+  font-size:12px;font-weight:700;color:var(--prada-gold);
+  letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;
+  display:inline-block;padding-bottom:2px;border-bottom:1px solid var(--prada-gold);
+}
+
+/* ========== BADGES ========== */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:0;
+  font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+  background:var(--primary-soft);color:var(--text-muted);
+  border:1px solid var(--border);
+}
+.badge-success{background:var(--success-soft);color:var(--success);border-color:var(--success)}
+.badge-warning{background:var(--warning-soft);color:var(--warning);border-color:var(--warning)}
+.badge-danger{background:var(--danger-soft);color:var(--danger);border-color:var(--danger)}
+.badge-dot{
+  width:5px;height:5px;border-radius:0;
+  background:currentColor;
+}
+.badge-layer{
+  font-size:12px;font-weight:700;padding:3px 8px;border-radius:0;
+  letter-spacing:0.1em;text-transform:uppercase;
+  background:transparent;color:var(--prada-white);
+  border:1px solid var(--prada-olive-soft);
+}
+.badge-layer.l-引流款{border-color:var(--prada-teal);color:var(--prada-teal)}
+.badge-layer.l-延续款{border-color:var(--prada-olive-soft);color:var(--prada-olive-soft)}
+.badge-layer.l-复购新款{border-color:var(--prada-gold);color:var(--prada-gold)}
+.badge-layer.l-形象款{border-color:var(--prada-sand);color:var(--prada-sand)}
+
+/* ========== SECTION 1: BASELINE ========== */
+.baseline-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+}
+.baseline-card{
+  background:var(--bg-soft);
+  border:1px solid var(--border);
+  border-radius:0;
+  padding:18px;
+  position:relative;
+}
+.baseline-card .label{font-size:12px;color:var(--text-muted);font-weight:500}
+.baseline-card .value{font-size:32px;font-weight:700;color:var(--primary);margin-top:4px;letter-spacing:-.5px}
+.baseline-card .meta{font-size:12px;color:var(--text-muted);margin-top:8px}
+.baseline-card .accent-bar{
+  position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 3px 3px 0;
+}
+.baseline-card.l-引流款 .accent-bar{background:var(--prada-teal)}
+.baseline-card.l-延续款 .accent-bar{background:var(--prada-olive-soft)}
+.baseline-card.l-复购新款 .accent-bar{background:var(--prada-gold)}
+.baseline-card.l-形象款 .accent-bar{background:var(--prada-sand)}
+.baseline-card.series-经典商务系列 .accent-bar{background:var(--prada-gold)}
+.baseline-card.series-新商务系列 .accent-bar{background:var(--prada-teal)}
+.baseline-card.series-商旅系列 .accent-bar{background:var(--prada-olive-dark)}
+.baseline-card.series-轻运动户外系列 .accent-bar{background:var(--prada-sand)}
+.baseline-card.series-跨系列基础款 .accent-bar{background:var(--prada-graphite)}
+.baseline-card .label{font-size:12px;color:var(--text-muted);font-weight:500}
+.baseline-card .value{font-size:32px;font-weight:700;color:var(--primary);margin-top:4px;letter-spacing:-.5px}
+.baseline-card .meta{font-size:12px;color:var(--text-muted);margin-top:8px}
+.baseline-card .accent-bar{
+  position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 3px 3px 0;
+}
+.baseline-summary{
+  display:flex;gap:24px;margin-top:20px;
+  padding-top:20px;border-top:1px solid var(--border);
+  font-size:13px;
+}
+.baseline-summary .item{display:flex;flex-direction:column;gap:2px}
+.baseline-summary .item .k{color:var(--text-muted);font-size:12px}
+.baseline-summary .item .v{color:var(--text);font-weight:600}
+
+/* ========== UPLOAD ZONE ========== */
+.upload-zone{
+  display:flex;align-items:center;gap:16px;
+  padding:14px 18px;border:1px dashed var(--border-strong);
+  border-radius:0;background:var(--bg-soft);
+  transition:all .15s ease;
+}
+.upload-zone.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.upload-zone .ico{
+  width:36px;height:36px;border-radius:0;
+  background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;flex-shrink:0;
+}
+.upload-zone .meta{flex:1}
+.upload-zone .meta .t{font-size:13px;font-weight:500}
+.upload-zone .meta .d{font-size:12px;color:var(--text-muted);margin-top:2px}
+.upload-zone input[type=file]{display:none}
+
+/* ========== SECTION 2: DASHBOARD ========== */
+.water-grid{display:grid;gap:14px}
+.water-row{
+  display:grid;grid-template-columns:120px 1fr 120px 40px;
+  align-items:center;gap:16px;
+  padding:14px 18px;background:var(--bg-soft);
+  border:1px solid var(--border);border-radius:0;
+}
+.water-row .lane-label{display:flex;flex-direction:column;gap:2px}
+.water-row .lane-label .name{font-size:13px;font-weight:600}
+.water-row .lane-label .sub{font-size:12px;color:var(--text-muted)}
+.water-row .lane-bar{
+  position:relative;height:36px;background:#e2e8f0;border-radius:0;overflow:hidden;
+}
+.water-row .lane-bar .plan-mark{
+  position:absolute;top:0;bottom:0;
+  border-left:2px dashed var(--border-strong);
+  border-right:2px dashed var(--border-strong);
+  background:rgba(15,23,42,.02);
+}
+.water-row .lane-bar .actual{
+  position:absolute;top:0;bottom:0;left:0;
+  border-radius:0;
+  transition:width .5s cubic-bezier(.4,0,.2,1);
+}
+.water-row .lane-bar .actual.ok{background:linear-gradient(90deg,#10b981,#34d399)}
+.water-row .lane-bar .actual.warn{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.water-row .lane-bar .actual.bad{background:linear-gradient(90deg,#ef4444,#f87171)}
+.water-row .lane-stats{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.water-row .lane-stats .nums{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.water-row .lane-stats .delta{font-size:12px;color:var(--text-muted)}
+.water-row .lane-stats .delta.over{color:var(--warning)}
+.water-row .lane-stats .delta.bad{color:var(--danger)}
+.water-row .lane-stats .delta.under{color:var(--accent)}
+.water-row .lane-status{
+  width:32px;height:32px;border-radius:0;
+  display:grid;place-items:center;font-size:16px;font-weight:700;
+}
+.water-row .lane-status.ok{background:var(--success-soft);color:var(--success)}
+.water-row .lane-status.warn{background:var(--warning-soft);color:var(--warning)}
+.water-row .lane-status.bad{background:var(--danger-soft);color:var(--danger)}
+
+/* ========== SERIES COMPLETION ========== */
+.completion-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.completion-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:0;
+  padding:18px;position:relative;overflow:hidden;
+}
+.completion-card::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+}
+.completion-card.l-引流款::before{background:var(--prada-teal)}
+.completion-card.l-延续款::before{background:var(--prada-olive-soft)}
+.completion-card.l-复购新款::before{background:var(--prada-gold)}
+.completion-card.l-形象款::before{background:var(--prada-sand)}
+.completion-card .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.completion-card .head .name{font-size:13px;font-weight:600}
+.completion-card .head .pct{font-size:22px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.completion-card .head .pct.ok{color:var(--success)}
+.completion-card .head .pct.warn{color:var(--warning)}
+.completion-card .head .pct.bad{color:var(--danger)}
+.completion-card .meta{font-size:12px;color:var(--text-muted);margin-bottom:10px}
+.completion-card .meta strong{color:var(--text);font-weight:600}
+.completion-card .progress-bar{
+  height:8px;background:#e2e8f0;border-radius:0;overflow:hidden;display:flex;margin-bottom:12px;
+}
+.completion-card .progress-bar .seg{height:100%;transition:width .4s ease}
+.completion-card .node-dist{display:flex;flex-direction:column;gap:4px}
+.completion-card .node-dist .row{
+  display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);
+}
+.completion-card .node-dist .row .lbl{flex-shrink:0;width:84px}
+.completion-card .node-dist .row .bar{
+  flex:1;height:4px;background:#e2e8f0;border-radius:0;overflow:hidden;
+}
+.completion-card .node-dist .row .bar .fill{height:100%;background:var(--accent);border-radius:0;font-weight:600;color:var(--text);
+  min-width:24px;text-align:right;
+}
+.completion-card .node-dist .row.completed .lbl{color:var(--success);font-weight:600}
+
+/* series-colored completion cards (overrides) */
+.completion-card.s-经典商务系列::before{background:#1e40af}
+.completion-card.s-新商务系列::before{background:#0891b2}
+.completion-card.s-商旅系列::before{background:#0d9488}
+.completion-card.s-轻运动户外系列::before{background:#65a30d}
+.completion-card .series-tag{
+  display:inline-block;font-size:12px;padding:2px 8px;border-radius:0;
+  background:var(--primary-soft);color:var(--text-muted);font-weight:600;
+  margin-left:6px;
+}
+.completion-card.s-经典商务系列 .series-tag{background:#dbeafe;color:#1e40af}
+.completion-card.s-新商务系列 .series-tag{background:#cffafe;color:#0891b2}
+.completion-card.s-商旅系列 .series-tag{background:#ccfbf1;color:#0d9488}
+.completion-card.s-轻运动户外系列 .series-tag{background:#ecfccb;color:#65a30d}
+
+/* ========== LAYER COMPLETION CARDS (redesign) ========== */
+.layer-completion-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.layer-complete-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:0;
+  padding:16px;position:relative;overflow:hidden;
+}
+.layer-complete-card::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+}
+.layer-complete-card.l-引流款::before{background:var(--prada-teal)}
+.layer-complete-card.l-延续款::before{background:var(--prada-olive-soft)}
+.layer-complete-card.l-复购新款::before{background:var(--prada-gold)}
+.layer-complete-card.l-形象款::before{background:var(--prada-sand)}
+.layer-complete-card .head{
+  display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;
+}
+.layer-complete-card .layer-tag-block{display:flex;flex-direction:column;gap:4px}
+.layer-complete-card .planned-info{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.layer-complete-card .pct-block{text-align:right}
+.layer-complete-card .pct{
+  font-size:28px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums;
+  line-height:1;
+}
+.layer-complete-card .pct.ok{color:var(--success)}
+.layer-complete-card .pct.warn{color:var(--warning)}
+.layer-complete-card .pct.bad{color:var(--danger)}
+.layer-complete-card .completed-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+.layer-complete-card .progress-bar{
+  height:8px;background:#e2e8f0;border-radius:0;overflow:hidden;
+  display:flex;margin-bottom:10px;
+}
+.layer-complete-card .progress-bar .seg{height:100%;transition:width .4s ease}
+
+.layer-complete-card .series-breakdown{margin-bottom:10px}
+.layer-complete-card .series-bar{
+  display:flex;height:6px;border-radius:0;overflow:hidden;background:#e2e8f0;
+  margin-bottom:6px;
+}
+.layer-complete-card .series-bar > div{transition:flex .3s ease}
+.layer-complete-card .series-legend{
+  display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--text-muted);
+}
+.layer-complete-card .series-legend > span{display:inline-flex;align-items:center;gap:3px}
+.layer-complete-card .series-legend strong{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.layer-complete-card .series-legend .dot{
+  width:8px;height:8px;border-radius:0;display:inline-block;
+}
+
+.layer-complete-card .bottom-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:10px;border-top:1px dashed var(--border);
+  gap:8px;
+}
+.layer-complete-card .node-mini{
+  display:flex;flex-wrap:wrap;gap:4px;flex:1;
+}
+.layer-complete-card .node-pill{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:12px;color:var(--text-muted);
+  background:var(--bg-soft);padding:2px 6px;border-radius:0;
+}
+.layer-complete-card .node-pill.completed{color:var(--success);font-weight:600}
+.layer-complete-card .node-pill .np-dot{
+  width:5px;height:5px;border-radius:0;background:currentColor;opacity:.5;
+}
+.layer-complete-card .node-pill.completed .np-dot{opacity:1}
+.layer-complete-card .risk-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;font-weight:600;color:var(--danger);
+  background:var(--danger-soft);padding:3px 8px;border-radius:0;
+}
+.layer-complete-card .ok-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;font-weight:600;color:var(--success);
+  background:var(--success-soft);padding:3px 8px;border-radius:0;
+}
+
+/* ========== STYLE-LEVEL MINI COMPLETION (单款单色页) ========== */
+.style-mini-complete{
+  background:var(--bg-soft);border:1px solid var(--border);border-radius:0;
+  padding:16px;margin-bottom:16px;
+}
+.style-mini-complete .head{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
+}
+.style-mini-complete .head .name{font-size:14px;font-weight:600}
+.style-mini-complete .progress-bar{
+  height:8px;background:#e2e8f0;border-radius:0;overflow:hidden;
+  display:flex;margin-bottom:10px;
+}
+.style-mini-complete .progress-bar .seg{height:100%;transition:width .4s ease}
+.style-mini-complete .meta-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;color:var(--text-muted);margin-bottom:8px;
+}
+.style-mini-complete .meta-row strong{color:var(--text);font-weight:600}
+.style-mini-complete .node-row{
+  display:flex;gap:6px;flex-wrap:wrap;
+}
+.style-mini-complete .node-row .node-pill{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;color:var(--text-muted);
+  background:var(--bg-card);padding:3px 8px;border-radius:0;border:1px solid var(--border);
+}
+.style-mini-complete .node-row .node-pill.completed{
+  color:var(--success);font-weight:600;border-color:var(--success);
+}
+
+/* ========== MATRIX (layer × series) ========== */
+.matrix-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:0;
+  padding:24px;
+}
+.matrix-table{
+  display:grid;
+  gap:1px;background:var(--border);border-radius:0;overflow:hidden;
+}
+.matrix-table .cell{
+  background:var(--bg-card);padding:14px;display:flex;flex-direction:column;gap:4px;
+  min-height:84px;position:relative;
+}
+.matrix-table .cell.head{
+  background:var(--bg-soft);font-weight:600;color:var(--text-muted);font-size:12px;
+  text-transform:uppercase;letter-spacing:.5px;justify-content:center;text-align:center;
+}
+.matrix-table .cell.corner{background:var(--bg-soft)}
+.matrix-table .cell .layer-tag{
+  font-size:12px;color:var(--text-muted);font-weight:500;
+}
+.matrix-table .cell .num{font-size:20px;font-weight:700;letter-spacing:-.5px;color:var(--text)}
+.matrix-table .cell .mu{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.matrix-table .cell .risk{font-size:12px;color:var(--danger);font-weight:600;margin-top:auto}
+.matrix-table .cell.empty{background:repeating-linear-gradient(45deg,#f9fafb,#f9fafb 4px,#f3f4f6 4px,#f3f4f6 8px)}
+.matrix-table .cell .fill-bg{
+  position:absolute;inset:0;opacity:.55;pointer-events:none;
+  border-radius:0;
+}
+.matrix-table .cell.warn .num{color:var(--warning)}
+.matrix-table .cell.danger .num{color:var(--danger)}
+.matrix-table .cell .layer-name{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:600;color:var(--text);
+}
+.matrix-legend{
+  display:flex;gap:20px;margin-top:16px;font-size:12px;color:var(--text-muted);
+}
+.matrix-legend .item{display:flex;align-items:center;gap:6px}
+.matrix-legend .sw{width:14px;height:14px;border-radius:0;align-items:center;gap:12px;flex-wrap:wrap;
+  margin-bottom:16px;
+}
+.style-toolbar .seg{
+  display:inline-flex;background:var(--bg-soft);
+  border:1px solid var(--border);border-radius:0;padding:2px;
+}
+.style-toolbar .seg button{
+  padding:6px 12px;font-size:12px;font-weight:500;
+  color:var(--text-muted);border-radius:0;
+}
+.style-toolbar .seg button.active{background:var(--bg-card);color:var(--primary);box-shadow:var(--shadow-sm)}
+
+.imports-list{
+  background:var(--bg-soft);border:1px solid var(--border);border-radius:0;
+  padding:14px;margin-top:16px;
+}
+.imports-list .ttl{font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.imports-list .row{
+  display:flex;align-items:center;gap:12px;padding:8px 0;
+  border-top:1px dashed var(--border);font-size:12px;
+}
+.imports-list .row:first-of-type{border-top:none}
+.imports-list .row .file{font-weight:500;color:var(--text);flex:1;min-width:0}
+.imports-list .row .meta{color:var(--text-muted);font-variant-numeric:tabular-nums}
+.import-row{margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed var(--border)}
+.import-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.changes-block{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:0;
+  margin-top:8px;overflow:hidden;
+}
+.changes-hdr{
+  font-size:12px;color:var(--text-muted);font-weight:600;
+  padding:8px 12px;background:var(--bg-soft);
+  border-bottom:1px solid var(--border);
+}
+.changes-list{display:flex;flex-direction:column}
+.change-row{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;font-size:12px;border-top:1px dashed var(--border);
+}
+.change-row:first-child{border-top:none}
+.change-row .change-style{flex:1;font-weight:500;color:var(--text)}
+.change-row .change-series{font-size:12px;color:var(--text-muted);min-width:90px}
+.change-row .change-arrow-icon{color:var(--text-light);font-weight:600;font-size:14px}
+
+/* ========== UPDATE DROPZONE ========== */
+.update-dropzone{
+  border:2px dashed var(--border-strong);border-radius:0;
+  padding:32px 24px;text-align:center;
+  background:linear-gradient(135deg,var(--bg-soft),var(--bg-card));
+  transition:all .2s ease;position:relative;
+}
+.update-dropzone.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.update-dropzone .dz-icon{font-size:36px;margin-bottom:8px}
+.update-dropzone .dz-text{font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px}
+.update-dropzone .dz-types{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:14px}
+.update-dropzone .dz-type{
+  font-size:12px;padding:4px 10px;border-radius:0;
+  background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);
+}
+.update-dropzone .dz-actions{display:flex;gap:8px;justify-content:center}
+.update-dropzone input[type=file]{display:none}
+
+/* ========== PARSE PREVIEW ========== */
+.parse-preview{
+  margin-top:14px;display:none;
+}
+.parse-preview.visible{display:block}
+.parse-preview .pp-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;background:var(--primary-soft);border-radius:0;
+  border:1px solid var(--border);border-bottom:none;
+}
+.parse-preview .pp-head .pp-title{font-size:13px;font-weight:600;color:var(--text)}
+.parse-preview .pp-head .pp-actions{display:flex;gap:8px}
+.parse-preview .pp-body{
+  border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);
+  padding:14px;background:var(--bg-card);
+}
+.parse-preview .pp-section{margin-bottom:10px}
+.parse-preview .pp-section:last-child{margin-bottom:0}
+.parse-preview .pp-section .pp-row{
+  display:flex;align-items:center;gap:10px;padding:8px 10px;
+  background:var(--bg-soft);border-radius:0;font-size:12px;
+}
+.parse-preview .pp-section .pp-row .pp-icon{font-size:14px}
+.parse-preview .pp-section .pp-row .pp-name{font-weight:500;color:var(--text);min-width:120px}
+.parse-preview .pp-section .pp-row .pp-meta{color:var(--text-muted);font-variant-numeric:tabular-nums}
+.parse-preview .pp-row.unknown{background:var(--warning-soft);color:var(--warning)}
+
+.style-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.style-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:0;
+  padding:16px;position:relative;overflow:hidden;cursor:pointer;
+  transition:all .15s ease;
+}
+.style-card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.style-card::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+}
+.style-card.series-经典商务系列::before{background:var(--prada-gold)}
+.style-card.series-新商务系列::before{background:var(--prada-teal)}
+.style-card.series-商旅系列::before{background:var(--prada-olive-dark)}
+.style-card.series-轻运动户外系列::before{background:var(--prada-sand)}
+.style-card.series-跨系列基础款::before{background:var(--prada-graphite)}
+.style-card .head{margin-bottom:8px}
+.style-card .head .name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:4px}
+.style-card .head .series-tag{
+  display:inline-block;font-size:12px;padding:1px 6px;border-radius:0;
+  background:var(--primary-soft);color:var(--text-muted);font-weight:500;
+}
+.style-card.series-经典商务系列 .series-tag{background:rgba(194,163,94,0.18);color:var(--prada-gold)}
+.style-card.series-新商务系列 .series-tag{background:rgba(82,120,119,0.18);color:var(--prada-teal)}
+.style-card.series-商旅系列 .series-tag{background:rgba(110,110,85,0.25);color:var(--prada-olive-dark)}
+.style-card.series-轻运动户外系列 .series-tag{background:rgba(174,166,132,0.22);color:var(--prada-sand)}
+.style-card.series-跨系列基础款 .series-tag{background:#f1f5f9;color:#475569}
+
+.color-swatches{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
+.color-swatch{
+  display:flex;align-items:center;gap:4px;
+  font-size:12px;color:var(--text-muted);
+}
+.color-swatch .chip{
+  width:14px;height:14px;border-radius:0;border:1px solid var(--border-strong);
+}
+.style-card .meta-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;color:var(--text-muted);margin-bottom:6px;
+}
+.style-card .progress-bar{
+  height:6px;background:#e2e8f0;border-radius:0;overflow:hidden;margin-bottom:8px;
+}
+.style-card .progress-bar .fill{height:100%;background:var(--success);border-radius:0;transition:width .4s ease}
+.style-card .progress-bar .fill.warn{background:var(--warning)}
+.style-card .progress-bar .fill.bad{background:var(--danger)}
+.style-card .pct{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;margin-bottom:8px}
+.style-card .pct strong{color:var(--text);font-size:13px;font-weight:600}
+.style-card .layer-status{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:8px;border-top:1px dashed var(--border);
+}
+.style-card .layer-status .badge{font-size:12px}
+.style-card .layer-status .lock-btn{
+  font-size:12px;padding:3px 8px;border-radius:0;
+  background:var(--primary-soft);color:var(--primary);
+  border:1px solid var(--border);font-weight:600;
+}
+.style-card .layer-status .lock-btn:hover{background:var(--primary);color:#fff}
+
+/* ========== SKU DETAIL ========== */
+.sku-detail-toolbar{
+  display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+  padding:14px 18px;background:var(--bg-soft);border:1px solid var(--border);border-radius:0;
+  margin-bottom:18px;
+}
+.sku-detail-toolbar .lbl{font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-right:6px}
+.sku-detail-toolbar select{
+  padding:6px 10px;border:1px solid var(--border);border-radius:0;
+  background:var(--bg-card);font-size:13px;min-width:200px;
+}
+.color-tabs{display:flex;gap:6px}
+.color-tab{
+  display:flex;align-items:center;gap:6px;padding:6px 10px;
+  border:1px solid var(--border);border-radius:0;background:var(--bg-card);
+  font-size:12px;font-weight:500;cursor:pointer;
+}
+.color-tab:hover{border-color:var(--border-strong)}
+.color-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.color-tab .chip{width:10px;height:10px;border-radius:0;border:1px solid rgba(0,0,0,.1)}
+
+.sku-detail-grid{
+  display:grid;grid-template-columns:1fr 1.5fr;gap:18px;margin-bottom:18px;
+}
+.sku-detail-img{
+  background:linear-gradient(135deg,#e2e8f0,#cbd5e1);
+  border-radius:0;height:340px;
+  display:grid;place-items:center;
+  color:var(--text-muted);font-size:13px;flex-direction:column;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.sku-detail-info{
+  display:flex;flex-direction:column;gap:14px;
+}
+.sku-detail-info .name{font-size:18px;font-weight:600;color:var(--text)}
+.sku-detail-info .badges{display:flex;gap:6px;flex-wrap:wrap}
+.sku-detail-info .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sku-detail-info .stat{background:var(--bg-soft);border-radius:0;padding:10px}
+.sku-detail-info .stat .lbl{font-size:12px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px}
+.sku-detail-info .stat .val{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+
+.sku-compare-table th,.sku-compare-table td{font-size:12px;padding:10px 12px}
+.sku-compare-table .chip-cell{display:flex;align-items:center;gap:6px}
+
+/* ========== LOCK LAYER MODAL ========== */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(15,23,42,.4);
+  opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:300;
+}
+.modal-backdrop.open{opacity:1;pointer-events:auto}
+.modal{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.95);
+  background:var(--bg-card);border-radius:0;
+  border:1px solid var(--prada-gold);
+  width:440px;box-shadow:0 0 0 1px rgba(0,0,0,0.5);
+  opacity:0;pointer-events:none;transition:all .2s ease;z-index:301;
+}
+.modal.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.modal-head{
+  padding:20px 24px;border-bottom:1px solid var(--border);
+  font-family:var(--font-serif);font-size:18px;font-weight:700;
+  letter-spacing:var(--tracking-tight);text-transform:uppercase;color:var(--prada-white);
+}
+.modal-body{padding:24px}
+.modal-body .desc{font-size:12px;color:var(--text-muted);margin-bottom:16px;letter-spacing:var(--tracking-moderate)}
+.modal-body .opt-list{display:flex;flex-direction:column;gap:8px}
+.modal-body .opt-list button{
+  padding:14px 16px;border:1px solid var(--border);border-radius:0;
+  background:var(--bg-card);font-size:12px;text-align:left;font-weight:600;
+  letter-spacing:var(--tracking-moderate);text-transform:uppercase;
+  display:flex;align-items:center;gap:12px;color:var(--prada-white);
+  cursor:pointer;transition:all .15s ease;
+}
+}
+.modal-body .opt-list button:hover{border-color:var(--accent);background:var(--accent-soft)}
+.modal-body .opt-list .l-dot{
+  width:10px;height:10px;border-radius:0;
+}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+/* ========== TABLE ========== */
+.table-wrap{overflow:auto;border-radius:0;border:1px solid var(--border)}
+table.data{font-size:14px}
+table.data thead th{
+  text-align:left;padding:14px 18px;font-weight:700;
+  background:var(--bg-soft);color:var(--prada-gold);
+  font-size:12px;letter-spacing:0.2em;text-transform:uppercase;
+  border-bottom:2px solid var(--prada-gold);position:sticky;top:0;z-index:2;
+}
+table.data tbody td{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  vertical-align:middle;color:var(--prada-white);
+}
+table.data tbody tr:last-child td{border-bottom:none}
+table.data tbody tr{cursor:pointer;transition:background .12s ease}
+table.data tbody tr:hover{background:rgba(194,163,94,0.06)}
+table.data tbody tr.row-danger{background:var(--danger-soft)}
+table.data tbody tr.row-danger:hover{background:rgba(139,58,58,0.32)}
+table.data tbody tr.row-warn{background:var(--warning-soft)}
+table.data tbody tr.row-warn:hover{background:rgba(194,163,94,0.28)}
+table.data .num{font-variant-numeric:tabular-nums;text-align:right}
+table.data .progress{
+  display:flex;align-items:center;gap:8px;min-width:120px;
+}
+table.data .progress .bar{
+  flex:1;height:6px;background:#e2e8f0;border-radius:0;overflow:hidden;
+}
+table.data .progress .fill{height:100%;border-radius:0;color:var(--text-muted);font-variant-numeric:tabular-nums;min-width:32px}
+
+/* ========== TABS ========== */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tabs .tab{
+  padding:14px 22px;font-size:13px;font-weight:600;
+  letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--text-muted);border-bottom:2px solid transparent;
+  margin-bottom:-1px;transition:all .15s ease;
+  background:transparent;
+}
+.tabs .tab:hover{color:var(--prada-white)}
+.tabs .tab.active{
+  color:var(--prada-gold);
+  border-bottom-color:var(--prada-gold);
+  background:rgba(194,163,94,0.06);
+}
+.tabs .tab .count{
+  display:inline-block;margin-left:8px;padding:1px 6px;
+  border-radius:0;font-size:12px;font-weight:700;
+  background:transparent;border:1px solid var(--border);
+  color:var(--text-muted);
+}
+.tabs .tab.active .count{background:var(--primary);color:#fff}
+
+.toolbar{
+  display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;
+}
+.toolbar .seg{
+  display:inline-flex;background:var(--bg-soft);
+  border:1px solid var(--border);border-radius:0;padding:2px;
+}
+.toolbar .seg button{
+  padding:6px 12px;font-size:12px;font-weight:500;
+  color:var(--text-muted);border-radius:0;transition:all .15s ease;
+}
+.toolbar .seg button:hover{color:var(--text)}
+.toolbar .seg button.active{background:var(--bg-card);color:var(--primary);box-shadow:var(--shadow-sm)}
+.toolbar .filter-input{
+  padding:7px 12px;border:1px solid var(--border);border-radius:0;
+  background:var(--bg-card);font-size:13px;width:200px;
+  transition:border-color .15s ease;
+}
+.toolbar .filter-input:focus{outline:none;border-color:var(--accent)}
+
+/* ========== SECTION 3: SALES ========== */
+.sales-grid{
+  display:grid;grid-template-columns:1fr 320px;gap:24px;
+}
+.sales-insights{display:flex;flex-direction:column;gap:12px}
+.insight-card{
+  display:flex;gap:12px;padding:14px;border-radius:0;
+  border:1px solid var(--border);background:var(--bg-soft);
+}
+.insight-card.warn{border-left:3px solid var(--warning);background:var(--warning-soft)}
+.insight-card.info{border-left:3px solid var(--accent);background:var(--accent-soft)}
+.insight-card.danger{border-left:3px solid var(--danger);background:var(--danger-soft)}
+.insight-card .ico{
+  width:32px;height:32px;border-radius:0;flex-shrink:0;
+  background:rgba(255,255,255,.6);display:grid;place-items:center;
+}
+.insight-card .body .t{font-size:13px;font-weight:600;color:var(--text)}
+.insight-card .body .d{font-size:12px;color:var(--text-muted);margin-top:4px}
+
+/* ========== PRICE BAND CHART ========== */
+.price-band-chart{
+  background:var(--bg-soft);border-radius:0;
+  padding:20px;border:1px solid var(--border);
+}
+.price-band-chart .cat-row{margin-bottom:24px}
+.price-band-chart .cat-row:last-child{margin-bottom:0}
+.price-band-chart .cat-label{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;
+}
+.price-band-chart .axis-wrap{
+  position:relative;height:50px;background:#fff;
+  border-radius:0;border:1px solid var(--border);overflow:hidden;
+}
+.price-band-chart .axis-bar{
+  position:absolute;top:0;bottom:0;background:rgba(15,23,42,.05);
+  border-left:2px dashed var(--border-strong);
+  border-right:2px dashed var(--border-strong);
+}
+.price-band-chart .axis-bar.ok{background:rgba(16,185,129,.12);border-color:var(--success)}
+.price-band-chart .axis-bar.over{background:rgba(239,68,68,.12);border-color:var(--danger)}
+.price-band-chart .axis-bar.under{background:rgba(245,158,11,.12);border-color:var(--warning)}
+.price-band-chart .dot{
+  position:absolute;top:50%;width:8px;height:8px;border-radius:0;
+  background:var(--accent);transform:translate(-50%,-50%);
+  box-shadow:0 0 0 2px rgba(37,99,235,.2);
+  transition:all .15s ease;
+}
+.price-band-chart .dot:hover{transform:translate(-50%,-50%) scale(1.6)}
+.price-band-chart .dot.bad{background:var(--danger);box-shadow:0 0 0 2px rgba(239,68,68,.2)}
+.price-band-chart .axis-ticks{
+  display:flex;justify-content:space-between;margin-top:6px;
+  font-size:12px;color:var(--text-light);font-variant-numeric:tabular-nums;
+}
+
+/* ========== SECTION 4: RISK TABLE ========== */
+.risk-summary{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;
+}
+.risk-card{
+  padding:16px;background:var(--bg-soft);border-radius:0;
+  border:1px solid var(--border);
+}
+.risk-card .lbl{font-size:12px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.risk-card .val{font-size:24px;font-weight:600;margin-top:4px;letter-spacing:-.5px}
+.risk-card .desc{font-size:12px;color:var(--text-muted);margin-top:4px}
+.risk-card.red{background:var(--danger-soft);border-color:#fca5a5}
+.risk-card.red .val{color:var(--danger)}
+.risk-card.yellow{background:var(--warning-soft);border-color:#fcd34d}
+.risk-card.yellow .val{color:var(--warning)}
+.risk-card.green .val{color:var(--success)}
+.risk-card.blue .val{color:var(--accent)}
+
+.action-bar{
+  display:flex;align-items:center;gap:12px;padding:14px 18px;
+  background:var(--bg-soft);border-radius:0;margin-top:16px;
+  border:1px solid var(--border);
+}
+.action-bar .selected-count{font-size:13px;color:var(--text)}
+.action-bar .selected-count strong{color:var(--danger);font-weight:600}
+.action-bar .actions{margin-left:auto;display:flex;gap:8px}
+
+/* ========== DRAWER ========== */
+.drawer-backdrop{
+  position:fixed;inset:0;background:rgba(15,23,42,.4);
+  opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:200;
+}
+.drawer-backdrop.open{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:520px;
+  background:var(--bg-card);
+  border-left:1px solid var(--prada-gold);
+  box-shadow:-1px 0 0 rgba(0,0,0,0.15);
+  transform:translateX(100%);transition:transform .25s ease;z-index:201;
+  display:flex;flex-direction:column;
+}
+.drawer.open{transform:translateX(0)}
+.drawer-head{
+  padding:24px 28px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(90deg,rgba(194,163,94,0.06),transparent);
+}
+.drawer-head .ttl{font-family:var(--font-serif);font-size:22px;font-weight:700;letter-spacing:var(--tracking-tight);text-transform:uppercase;color:var(--prada-white)}
+.drawer-head .close{
+  width:32px;height:32px;border-radius:0;
+  display:grid;place-items:center;color:var(--prada-gold);
+  border:1px solid var(--prada-gold);
+}
+.drawer-head .close:hover{background:var(--prada-gold);color:var(--prada-black)}
+.drawer-body{flex:1;overflow:auto;padding:28px}
+.drawer-section{margin-bottom:24px}
+.drawer-section .lbl{
+  font-size:12px;color:var(--prada-gold);font-weight:700;
+  text-transform:uppercase;letter-spacing:0.2em;margin-bottom:12px;
+  padding-bottom:4px;border-bottom:1px solid var(--border);
+}
+.drawer-img{
+  width:100%;height:240px;background:linear-gradient(135deg,var(--prada-charcoal),var(--prada-graphite));
+  border-radius:0;display:grid;place-items:center;
+  color:var(--prada-olive-soft);font-size:12px;margin-bottom:18px;
+  border:1px solid var(--border);
+  letter-spacing:var(--tracking-moderate);text-transform:uppercase;
+}
+.cost-bar{margin-bottom:10px}
+.cost-bar .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.cost-bar .top .n{color:var(--text);font-weight:500}
+.cost-bar .top .p{color:var(--text-muted);font-variant-numeric:tabular-nums}
+.cost-bar .bar{height:8px;background:#e2e8f0;border-radius:0;overflow:hidden}
+.cost-bar .fill{height:100%;border-radius:0;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;
+}
+.drawer-stat{
+  padding:12px;background:var(--bg-soft);border-radius:0;
+}
+.drawer-stat .lbl{font-size:12px;color:var(--text-muted);margin-bottom:4px}
+.drawer-stat .val{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.drawer-stat .val.danger{color:var(--danger)}
+.drawer-stat .val.warn{color:var(--warning)}
+.drawer-stat .val.ok{color:var(--success)}
+
+/* ========== TOAST ========== */
+.toast-host{
+  position:fixed;top:80px;right:24px;z-index:300;
+  display:flex;flex-direction:column;gap:8px;
+}
+.toast{
+  padding:12px 18px;background:var(--primary);color:#fff;
+  border-radius:0;font-size:13px;
+  box-shadow:var(--shadow-lg);
+  animation:slideIn .25s ease;
+  min-width:240px;
+}
+.toast.success{background:var(--success)}
+.toast.warn{background:var(--warning)}
+.toast.danger{background:var(--danger)}
+.toast.info{background:var(--accent)}
+@keyframes slideIn{
+  from{transform:translateX(100%);opacity:0}
+  to{transform:translateX(0);opacity:1}
+}
+
+/* ========== EMPTY STATE ========== */
+.empty{
+  padding:40px;text-align:center;color:var(--text-muted);
+  font-size:13px;
+}
+
+/* ========== UTIL ========== */
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace}
+.muted{color:var(--text-muted)}
+.danger-text{color:var(--danger)}
+.warn-text{color:var(--warning)}
+.ok-text{color:var(--success)}
+.flex{display:flex}
+.gap-8{gap:8px}
+.gap-12{gap:12px}
+.mt-12{margin-top:12px}
+.mt-16{margin-top:16px}
+.mb-16{margin-bottom:16px}
+
+/* ========== CHECKBOX ========== */
+.cb{position:relative;display:inline-block;width:16px;height:16px}
+.cb input{opacity:0;position:absolute;inset:0;cursor:pointer}
+.cb .box{
+  position:absolute;inset:0;border:1.5px solid var(--border-strong);
+  border-radius:0;background:var(--bg-card);
+  transition:all .15s ease;
+}
+.cb input:checked + .box{background:var(--primary);border-color:var(--primary)}
+.cb input:checked + .box::after{
+  content:"";position:absolute;left:4px;top:1px;
+  width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;
+  transform:rotate(45deg);
+}
+
+/* scrollbar */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:0}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+::-webkit-scrollbar-track{background:transparent}
+
+/* responsive */
+@media (max-width:1100px){
+  .baseline-grid{grid-template-columns:repeat(2,1fr)}
+  .sales-grid{grid-template-columns:1fr}
+  .risk-summary{grid-template-columns:repeat(2,1fr)}
+  .drawer{width:100%}
+}
+</style>
+</head>
+<body>
+<main>
+
+  <div class="page-title">
+    <h1>四维匹配看板 · MVP</h1>
+    <p>风险前置 · 资源精准 · 会议高效。 距订货会还有 <strong id="countdown" class="ok-text">28</strong> 天。</p>
+  </div>
+
+  <!-- ========== MODULE 1: BASELINE ========== -->
+  <section id="sec-baseline" class="card">
+    <div class="card-head">
+      <div>
+        <div class="module-label">模块 1</div>
+        <h2>企划基线</h2>
+        <div class="sub">上传季度企划底表，作为后续比对的唯一参照系</div>
+      </div>
+      <div class="actions">
+        <span class="badge badge-success"><span class="badge-dot"></span> 基线已锁定</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="baseline-upload">
+        <div class="ico">📋</div>
+        <div class="meta">
+          <div class="t">《2026秋冬企划底表.xlsx》 · 已锁定</div>
+          <div class="d">含 4 个分层 SKU 数、品类价格带、倍率红线、关键节点 · 最后更新 2026-04-01</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('baseline-file').click()">更换底表</button>
+        <input type="file" id="baseline-file" accept=".xlsx,.xls" onchange="handleBaselineUpload(event)">
+      </div>
+
+      <h4 style="font-size:12px;font-weight:600;margin:20px 0 10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px">📊 按 4 分层规划 <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">· 价格/角色维度</span></h4>
+      <div class="baseline-grid" id="baseline-grid"></div>
+
+      <h4 style="font-size:12px;font-weight:600;margin:24px 0 10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px">📊 按 5 系列规划 <span class="muted" style="font-weight:400;text-transform:normal;letter-spacing:0">· 产品线/风格维度</span></h4>
+      <div class="baseline-grid" id="baseline-series-grid"></div>
+
+      <h4 style="font-size:12px;font-weight:600;margin:24px 0 10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px">🔀 系列 × 分层 基线矩阵 <span class="muted" style="font-weight:400;text-transform:normal;letter-spacing:0">· 规划款数 · 决定企划结构是否健康</span></h4>
+      <div class="matrix-card">
+        <div class="matrix-table" id="baseline-matrix" style="grid-template-columns:160px repeat(4,1fr)"></div>
+        <div class="matrix-legend">
+          <div class="item"><div class="sw" style="background:var(--accent);opacity:.3"></div>已规划款数</div>
+          <div class="item" style="margin-left:auto">基线矩阵 · 来自季度企划底表</div>
+        </div>
+      </div>
+
+      <div class="baseline-summary" id="baseline-summary"></div>
+    </div>
+  </section>
+
+  <!-- ========== MODULE 2: 款维度总览 ========== -->
+  <section id="sec-style" class="card">
+    <div class="card-head">
+      <div>
+        <div class="module-label">模块 2</div>
+        <h2>进度与分层看板</h2>
+        <div class="sub">四层水位 + 节点红绿灯 + 倍率合规扫描 + 定倍辅助</div>
+      </div>
+      <div class="actions">
+        <div class="seg" style="display:inline-flex;background:var(--bg-soft);border:1px solid var(--border);border-radius:0;padding:2px">
+          <button class="seg-btn active" data-view="all">全部 <span class="count" id="cnt-all">0</span></button>
+          <button class="seg-btn" data-view="red">仅红灯 <span class="count" id="cnt-red">0</span></button>
+          <button class="seg-btn" data-view="warn">仅黄灯 <span class="count" id="cnt-warn">0</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <h3 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text-muted)">① 商品开发进度更新 <span class="muted" style="font-weight:400">· Excel + 图片 · 拖拽多文件 · 系统自动分辨维度</span></h3>
+      <div class="update-dropzone" id="update-dropzone">
+        <div class="dz-icon">📥</div>
+        <div class="dz-text">拖拽 Excel 或图片到此处</div>
+        <div class="dz-types">
+          <span class="dz-type">📋 款色总表</span>
+          <span class="dz-type">📈 节点进度表</span>
+          <span class="dz-type">🔄 分层调整表</span>
+          <span class="dz-type">📊 销售复盘表</span>
+          <span class="dz-type">🖼 款式图 (jpg/png)</span>
+        </div>
+        <div class="dz-actions">
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('update-files').click()">选择文件</button>
+          <button class="btn btn-secondary btn-sm" onclick="simulateUpdate()">模拟一次更新</button>
+        </div>
+        <input type="file" id="update-files" multiple accept=".xlsx,.xls,.jpg,.jpeg,.png" onchange="handleProgressUpdate(event)">
+      </div>
+      <div id="parse-preview"></div>
+      <div class="imports-list" id="imports-list"></div>
+
+      <h3 style="font-size:13px;font-weight:600;margin:28px 0 12px;color:var(--text-muted)">② 分层商品完成图 <span class="muted" style="font-weight:400">· 按 4 分层聚合 · 款数差额 + 完成度 + 系列分布 + 风险</span></h3>
+      <div class="layer-completion-grid" id="completion-grid"></div>
+
+      <h3 style="font-size:13px;font-weight:600;margin:28px 0 12px;color:var(--text-muted)">③ 系列商品进度 <span class="muted" style="font-weight:400">· 按 5 系列聚合 · 独立于分层的第二维度</span></h3>
+      <div class="completion-grid" id="series-progress-grid"></div>
+
+      <h3 style="font-size:13px;font-weight:600;margin:28px 0 12px;color:var(--text-muted)">④ 分层 × 系列 矩阵 <span class="muted" style="font-weight:400">· 交叉维度看结构是否健康</span></h3>
+      <div class="matrix-card">
+        <div class="matrix-table" id="matrix-table" style="grid-template-columns:120px repeat(4,1fr)"></div>
+        <div class="matrix-legend">
+          <div class="item"><div class="sw" style="background:var(--success);opacity:.3"></div>无风险</div>
+          <div class="item"><div class="sw" style="background:var(--warning);opacity:.3"></div>有黄灯</div>
+          <div class="item"><div class="sw" style="background:var(--danger);opacity:.3"></div>有红灯</div>
+          <div class="item" style="margin-left:auto">点击单元格查看该组合 SKU 列表 →</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:13px;font-weight:600;margin:28px 0 12px;color:var(--text-muted)">⑤ 开发节点 × 倍率合规</h3>
+      <div class="tabs">
+        <button class="tab active" data-tab="node">开发节点红绿灯 <span class="count" id="cnt-node">0</span></button>
+        <button class="tab" data-tab="markup">倍率合规性扫描 <span class="count" id="cnt-mu">0</span></button>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" class="filter-input" id="filter-input" placeholder="搜索 SKU 编号或名称...">
+        <span class="muted" style="font-size:12px">点击行查看款式详情 →</span>
+      </div>
+
+      <div id="table-host"></div>
+
+      <h3 style="font-size:13px;font-weight:600;margin:28px 0 12px;color:var(--text-muted)">⑥ 款维度总览 <span class="muted" style="font-weight:400">· 按款聚合 · 跨颜色 · 早期款仅锁系列</span></h3>
+
+      <div class="style-toolbar">
+        <div class="seg">
+          <button class="seg-btn active" data-series-filter="all">全部 <span class="count" id="cnt-style-all">0</span></button>
+        </div>
+        <span class="muted" style="font-size:12px">点击款卡片打开 drawer · 或锁定分层</span>
+      </div>
+
+      <div class="style-grid" id="style-grid"></div>
+
+    </div>
+  </section>
+
+  <!-- ========== MODULE 3: 色维度总览 ========== -->
+  <section id="sec-color" class="card">
+    <div class="card-head">
+      <div>
+        <div class="module-label">模块 3</div>
+        <h2>色维度总览</h2>
+        <div class="sub">按款 × 色展开 48 个 SKU · 每个 SKU 一张卡 · 和款维度同一设计语言</div>
+      </div>
+      <div class="actions">
+        <div class="seg" id="color-seg" style="display:inline-flex;background:var(--bg-soft);border:1px solid var(--border);border-radius:0;padding:2px">
+          <button class="seg-btn active" data-color-filter="all">全部 <span class="count" id="cnt-color-all">0</span></button>
+          <button class="seg-btn" data-color-filter="danger">仅红灯 <span class="count" id="cnt-color-red">0</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="style-toolbar">
+        <span class="muted" style="font-size:12px">每张卡片 = 1 个 SKU（款 + 色）· 点击打开 drawer 详情</span>
+      </div>
+
+      <div class="style-grid" id="color-grid" style="grid-template-columns:repeat(6,1fr)"></div>
+
+    </div>
+  </section>
+
+  <!-- ========== MODULE 4: SALES ========== -->
+  <section id="sec-sales" class="card">
+    <div class="card-head">
+      <div>
+        <div class="module-label">模块 4</div>
+        <h2>销售数据联动</h2>
+        <div class="sub">当季 POS 数据导入 + 品类价格带偏移对比</div>
+      </div>
+      <div class="actions">
+        <span class="badge"><span class="badge-dot" style="background:var(--success)"></span> POS 已更新至 2026-08-15</span>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="upload-zone" id="sales-upload">
+        <div class="ico">📊</div>
+        <div class="meta">
+          <div class="t">《当季销售复盘表.xlsx》 · 已上传</div>
+          <div class="d">含品类售罄率、折扣率 · 14 个品类，共 <strong id="sales-cat-count">3</strong> 个核心品类</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('sales-file').click()">替换</button>
+        <input type="file" id="sales-file" accept=".xlsx,.xls" onchange="handleSalesUpload(event)">
+      </div>
+
+      <div class="sales-grid mt-16">
+        <div>
+          <h3 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text-muted)">品类价格带偏移对比</h3>
+          <div class="price-band-chart" id="price-band-chart"></div>
+        </div>
+        <div>
+          <h3 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text-muted)">系统建议</h3>
+          <div class="sales-insights" id="sales-insights"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== MODULE 4: DECISIONS ========== -->
+  <section id="sec-decisions" class="card">
+    <div class="card-head">
+      <div>
+        <div class="module-label">模块 5</div>
+        <h2>会议决策输出</h2>
+        <div class="sub">风险款手术台 + 整改清单 + 会议纪要快照</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary btn-sm" onclick="generateTaskList()">✓ 生成会议任务</button>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="risk-summary" id="risk-summary"></div>
+
+      <h3 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text-muted)">期货风险款整改清单 <span class="muted" style="font-weight:400">· 倍率红灯 或 进度滞后 > 7 天</span></h3>
+
+      <div class="table-wrap">
+        <table class="data">
+          <thead>
+            <tr>
+              <th style="width:36px"><label class="cb"><input type="checkbox" id="select-all-risk" onchange="toggleAllRisk(this.checked)"><span class="box"></span></label></th>
+              <th>SKU</th>
+              <th>分层</th>
+              <th>当前节点</th>
+              <th class="num">企划价</th>
+              <th class="num">实际成本</th>
+              <th class="num">计算倍率</th>
+              <th class="num">红线</th>
+              <th>风险类型</th>
+              <th>建议操作</th>
+            </tr>
+          </thead>
+          <tbody id="risk-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="action-bar" id="action-bar" style="display:none">
+        <div class="selected-count">已选 <strong id="sel-count">0</strong> 款待整改</div>
+        <div class="actions">
+          <button class="btn btn-secondary btn-sm" onclick="clearRiskSelection()">清空</button>
+          <button class="btn btn-primary btn-sm" onclick="generateTaskList()">生成会议任务</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div style="text-align:center;color:var(--text-light);font-size:12px;padding:24px 0">
+    MVP 边界 · 不做自动设计 / 不做 OA 审批 / 不连 B2B 平台 / 不做下单系统
+  </div>
+</style>
+</head>
+<body>
+<main>
+
+
+
+
+<!-- ========== DRAWER ========== -->
+<div class="drawer-backdrop" id="drawer-backdrop" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div>
+      <div class="ttl" id="drawer-ttl">款式详情</div>
+      <div class="muted" style="font-size:12px;margin-top:2px" id="drawer-sub">—</div>
+    </div>
+    <button class="close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+
+<!-- 锁定分层弹窗 -->
+<div class="modal-backdrop" id="layer-modal-backdrop" onclick="closeLayerModal()"></div>
+<div class="modal" id="layer-modal">
+  <div class="modal-head" id="layer-modal-ttl">锁定分层</div>
+  <div class="modal-body">
+    <div class="desc" id="layer-modal-desc"></div>
+    <div class="opt-list" id="layer-modal-opts"></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-secondary btn-sm" onclick="closeLayerModal()">取消</button>
+  </div>
+</div>
+
+<div class="toast-host" id="toast-host"></div>
+
+<script>
+/* =====================================================
+   STATE
+===================================================== */
+const state = {
+  baseline: null,
+  styles: [],
+  skus: [],
+  sales: null,
+  imports: [],
+  selectedStyleId: 'STY-013',   // for sku-detail page
+  selectedColor: null,           // for sku-detail page
+  filter: 'all',
+  tab: 'node',
+  search: '',
+  selectedRisk: new Set(),
+  drawerSkuId: null
+};
+
+/* =====================================================
+   SAMPLE DATA
+===================================================== */
+function buildBaseline() {
+  return {
+    season: '2026 秋冬',
+    totalPlanned: 75,
+    categories: ['外套', '裤装', '内搭'],
+    layers: {
+      '引流款':   { planned: 18, priceBand: [399, 699],   redLine: 5.0, targetMarkUp: 6.5 },
+      '延续款':   { planned: 30, priceBand: [699, 999],   redLine: 5.5, targetMarkUp: 6.5 },
+      '复购新款': { planned: 15, priceBand: [999, 1499],  redLine: 6.0, targetMarkUp: 7.0 },
+      '形象款':   { planned: 12, priceBand: [1499, 2999], redLine: 6.0, targetMarkUp: 7.0 }
+    },
+    // 5 个系列基线 — 与 4 分层并列的维度
+    series: {
+      '经典商务系列':     { planned: 16, priceBand: [899, 4999], redLine: 6.0, targetMarkUp: 7.0 },
+      '新商务系列':       { planned: 14, priceBand: [599, 1499], redLine: 6.0, targetMarkUp: 7.0 },
+      '商旅系列':         { planned: 12, priceBand: [699, 2599], redLine: 6.0, targetMarkUp: 7.0 },
+      '轻运动户外系列':   { planned: 10, priceBand: [399, 3599], redLine: 6.0, targetMarkUp: 7.0 },
+      '跨系列基础款':     { planned: 23, priceBand: [299, 1799], redLine: 5.5, targetMarkUp: 6.5 }
+    },
+    // 系列 × 分层 基线矩阵（规划款数）
+    matrix: {
+      '经典商务系列':     { '引流款': 0, '延续款': 7, '复购新款': 1, '形象款': 8 },
+      '新商务系列':       { '引流款': 5, '延续款': 3, '复购新款': 4, '形象款': 2 },
+      '商旅系列':         { '引流款': 3, '延续款': 3, '复购新款': 5, '形象款': 1 },
+      '轻运动户外系列':   { '引流款': 4, '延续款': 0, '复购新款': 1, '形象款': 5 },
+      '跨系列基础款':     { '引流款': 6, '延续款': 17, '复购新款': 0, '形象款': 0 }
+    },
+    timeline: {
+      '企划稿':       '2026-04-01',
+      '图稿确认':     '2026-05-01',
+      '面辅料定样':   '2026-06-15',
+      '成本核算完成': '2026-07-15',
+      '样衣封样':     '2026-08-30'
+    }
+  };
+}
+
+function buildSales() {
+  return {
+    asOf: '2026-08-15',
+    categories: [
+      { name: '外套', category: '外套', sellThrough: 0.62, discount: 0.78, planShare: 0.40 },
+      { name: '裤装', category: '裤装', sellThrough: 0.71, discount: 0.85, planShare: 0.28 },
+      { name: '内搭', category: '内搭', sellThrough: 0.68, discount: 0.82, planShare: 0.32 }
+    ]
+  };
+}
+
+// ── 16 STYLES · 5 系列 ──
+function buildStyles() {
+  return [
+    // 经典商务系列 (5 款)
+    { styleId:'STY-013', styleName:'经典行政夹克',   series:'经典商务系列', category:'外套', targetPrice:1299, plannedLayers:['延续款'], lockedLayer:true,  actualLayer:'延续款' },
+    { styleId:'STY-014', styleName:'经典锦氨裤子',   series:'经典商务系列', category:'裤装', targetPrice:899,  plannedLayers:['延续款'], lockedLayer:true,  actualLayer:'延续款' },
+    { styleId:'STY-015', styleName:'经典西方套装',   series:'经典商务系列', category:'外套', targetPrice:4999, plannedLayers:['形象款'], lockedLayer:false, actualLayer:null },
+    { styleId:'STY-016', styleName:'经典皮鞋',       series:'经典商务系列', category:'内搭', targetPrice:1899, plannedLayers:['形象款'], lockedLayer:true,  actualLayer:'形象款' },
+    { styleId:'STY-017', styleName:'经典正统衬衫',   series:'经典商务系列', category:'内搭', targetPrice:699,  plannedLayers:['延续款'], lockedLayer:true,  actualLayer:'延续款' },
+
+    // 新商务系列 (4 款)
+    { styleId:'STY-018', styleName:'现代商务衬衫',   series:'新商务系列',   category:'内搭', targetPrice:599,  plannedLayers:['引流款'], lockedLayer:true,  actualLayer:'引流款' },
+    { styleId:'STY-019', styleName:'现代卡其裤',     series:'新商务系列',   category:'裤装', targetPrice:599,  plannedLayers:['引流款'], lockedLayer:true,  actualLayer:'引流款' },
+    { styleId:'STY-020', styleName:'现代针织衫',     series:'新商务系列',   category:'内搭', targetPrice:899,  plannedLayers:['延续款'], lockedLayer:true,  actualLayer:'延续款' },
+    { styleId:'STY-021', styleName:'现代轻商务夹克', series:'新商务系列',   category:'外套', targetPrice:1199, plannedLayers:['复购新款'], lockedLayer:false, actualLayer:null },
+
+    // 商旅系列 (3 款)
+    { styleId:'STY-022', styleName:'商旅多功能外套', series:'商旅系列',     category:'外套', targetPrice:1399, plannedLayers:['复购新款'], lockedLayer:false, actualLayer:null },
+    { styleId:'STY-023', styleName:'商旅抗皱裤',     series:'商旅系列',     category:'裤装', targetPrice:1099, plannedLayers:['复购新款'], lockedLayer:true,  actualLayer:'复购新款' },
+    { styleId:'STY-024', styleName:'商旅羽绒夹克',   series:'商旅系列',     category:'外套', targetPrice:1299, plannedLayers:['延续款'], lockedLayer:true,  actualLayer:'延续款' },
+
+    // 轻运动户外系列 (2 款)
+    { styleId:'STY-025', styleName:'户外派克大衣',   series:'轻运动户外系列', category:'外套', targetPrice:3599, plannedLayers:['形象款'], lockedLayer:false, actualLayer:null },
+    { styleId:'STY-026', styleName:'户外休闲T恤',     series:'轻运动户外系列', category:'内搭', targetPrice:399,  plannedLayers:['引流款'], lockedLayer:true,  actualLayer:'引流款' },
+
+    // 跨系列基础款 (2 款) — 新增
+    { styleId:'STY-027', styleName:'基础白T恤',       series:'跨系列基础款', category:'内搭', targetPrice:299,  plannedLayers:['引流款'], lockedLayer:false, actualLayer:null },
+    { styleId:'STY-028', styleName:'基础针织衫',     series:'跨系列基础款', category:'内搭', targetPrice:499,  plannedLayers:['延续款'], lockedLayer:true,  actualLayer:'延续款' }
+  ];
+}
+
+// ── 48 SKUs · 16 款 × 3 色 ──
+function buildSkus(styles) {
+  const colors = {
+    'STY-013': ['藏青','黑色','灰色'],
+    'STY-014': ['黑色','藏青','卡其'],
+    'STY-015': ['黑色','藏青','深灰'],
+    'STY-016': ['黑色','棕色','酒红'],
+    'STY-017': ['白色','浅蓝','粉色'],
+    'STY-018': ['浅蓝','白色','深灰'],
+    'STY-019': ['卡其','深灰','黑色'],
+    'STY-020': ['藏青','灰色','驼色'],
+    'STY-021': ['黑色','深蓝','灰色'],
+    'STY-022': ['黑色','藏青','军绿'],
+    'STY-023': ['深灰','黑色','藏青'],
+    'STY-024': ['黑色','藏青','红色'],
+    'STY-025': ['卡其','黑色','橄榄绿'],
+    'STY-026': ['黑色','白色','灰色'],
+    'STY-027': ['白色','黑色','灰色'],
+    'STY-028': ['藏青','灰色','米色']
+  };
+  // cost color-shifted (1st色 = base, +/- 8% for 2nd/3rd)
+  const baseCost = {
+    'STY-013':225,'STY-014':148,'STY-015':920,'STY-016':362,'STY-017':115,
+    'STY-018':88, 'STY-019':96, 'STY-020':155,'STY-021':198,
+    'STY-022':215,'STY-023':175,'STY-024':215,
+    'STY-025':595,'STY-026':58,
+    'STY-027':52, 'STY-028':85
+  };
+  // node + delay per style (3 colors each: good / mid / bad)
+  const styleStory = {
+    'STY-013': [['样衣封样',0],['成本核算完成',3],['面辅料定样',10]],     // 经典行政夹克：1 ok / 1 mid / 1 lag
+    'STY-014': [['样衣封样',0],['样衣封样',0],['成本核算完成',5]],
+    'STY-015': [['面辅料定样',0],['面辅料定样',13],['图稿确认',17]],      // 经典西方套装：未锁定 + 严重滞后
+    'STY-016': [['样衣封样',0],['样衣封样',0],['成本核算完成',4]],
+    'STY-017': [['样衣封样',0],['样衣封样',0],['成本核算完成',2]],
+    'STY-018': [['样衣封样',0],['样衣封样',0],['成本核算完成',3]],
+    'STY-019': [['样衣封样',0],['样衣封样',0],['面辅料定样',10]],
+    'STY-020': [['成本核算完成',5],['样衣封样',0],['样衣封样',0]],
+    'STY-021': [['面辅料定样',0],['图稿确认',11],['图稿确认',14]],        // 现代轻商务夹克：未锁定 + 滞后
+    'STY-022': [['面辅料定样',0],['成本核算完成',7],['成本核算完成',9]],  // 商旅多功能外套：未锁定 + 滞后
+    'STY-023': [['成本核算完成',0],['样衣封样',0],['样衣封样',0]],
+    'STY-024': [['样衣封样',0],['成本核算完成',7],['样衣封样',0]],
+    'STY-025': [['面辅料定样',7],['面辅料定样',15],['图稿确认',17]],     // 户外派克大衣：未锁定 + 严重滞后
+    'STY-026': [['样衣封样',0],['样衣封样',0],['成本核算完成',3]],
+    'STY-027': [['成本核算完成',0],['样衣封样',0],['图稿确认',11]],     // 基础白T恤：未锁定
+    'STY-028': [['样衣封样',0],['成本核算完成',4],['样衣封样',0]]
+  };
+
+  const items = [];
+  const timeline = state.baseline?.timeline || {
+    '企划稿':'2026-04-01','图稿确认':'2026-05-01','面辅料定样':'2026-06-15',
+    '成本核算完成':'2026-07-15','样衣封样':'2026-08-30'
+  };
+  styles.forEach(st => {
+    const cols = colors[st.styleId];
+    const base = baseCost[st.styleId];
+    const story = styleStory[st.styleId];
+    cols.forEach((color, i) => {
+      const cost = Math.round(base * (1 + (i - 1) * 0.05));
+      const [node, delay] = story[i];
+      const code3 = st.styleId.split('-')[1];
+      const colorCode = ['BLK','NVY','GRY','BRN','WHT','BLU','PNK','KHK','OLV','RED','BUR','TAN','GRN'][cols.indexOf(color)] || 'CLR';
+      const skuCode = 'FW26-' + code3 + '-' + colorCode;
+      // actualLayer = style's actualLayer (locked) or null
+      const actualLayer = st.actualLayer;
+      items.push({
+        // 兼容旧字段
+        id: skuCode,
+        name: st.styleName + (cols.length > 1 ? ' · ' + color : ''),
+        series: st.series,
+        cat: st.category,
+        // 新字段
+        skuCode, styleId: st.styleId, color,
+        price: st.targetPrice, cost,
+        node, planned: timeline[node], actual: timeline[node], delay,
+        layer: actualLayer,
+        lockedLayer: st.lockedLayer,
+        actualLayer
+      });
+    });
+  });
+  return items;
+}
+
+function buildImports() {
+  // 模拟导入历史 — 包含"改了哪里"的差异记录
+  return [
+    {
+      type:'style-color', fileName:'2026秋冬款色总表.xlsx',
+      uploadedAt:'2026-04-01 09:15', uploader:'张助理（开发部）',
+      rowsParsed:48, status:'success',
+      summary: '含 16 款 × 3 色 = 48 SKU · 5 系列完整覆盖'
+    },
+    {
+      type:'layer-adjustment',
+      fileName:'中期分层调整表_第一批.xlsx',
+      uploadedAt:'2026-06-10 14:32', uploader:'王总（企划部）',
+      rowsParsed:3, status:'success',
+      changes: [
+        { styleId:'STY-013', styleName:'经典行政夹克',   series:'经典商务系列', before:'未锁定',  after:'延续款' },
+        { styleId:'STY-014', styleName:'经典锦氨裤子',   series:'经典商务系列', before:'未锁定',  after:'延续款' },
+        { styleId:'STY-028', styleName:'基础针织衫',     series:'跨系列基础款', before:'未锁定',  after:'延续款' }
+      ]
+    }
+  ];
+}
+
+/* =====================================================
+   HELPERS
+===================================================== */
+const fmt = {
+  money: n => '¥' + n.toLocaleString('zh-CN'),
+  num:   n => n.toLocaleString('zh-CN'),
+  pct:   n => Math.round(n * 100) + '%'
+};
+
+function el(html) {
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+
+function getStyle(styleId) {
+  return state.styles.find(s => s.styleId === styleId);
+}
+function getSkusByLayer(layer) {
+  return state.skus.filter(s => s.layer === layer);
+}
+function getSkusBySeries(series) {
+  return state.skus.filter(s => s.series === series);
+}
+function getSkusByStyle(styleId) {
+  return state.skus.filter(s => s.styleId === styleId);
+}
+
+function calcMarkUp(sku) {
+  return +(sku.price / sku.cost).toFixed(2);
+}
+
+function muStatus(sku, layer) {
+  if (!layer) return 'pending';
+  const mu = calcMarkUp(sku);
+  const red = state.baseline.layers[layer]?.redLine ?? 0;
+  if (mu < red) return 'danger';
+  if (mu < red + 0.5) return 'warn';
+  return 'ok';
+}
+
+function nodeStatus(sku) {
+  if (sku.delay === 0) return 'ok';
+  if (sku.delay <= 5)  return 'ok';
+  if (sku.delay <= 7)  return 'warn';
+  return 'danger';
+}
+
+function overallStatus(sku, layer) {
+  const ms = muStatus(sku, layer);
+  const ns = nodeStatus(sku);
+  if (ms === 'danger' || ns === 'danger') return 'danger';
+  if (ms === 'pending') return 'pending';
+  if (ms === 'warn'   || ns === 'warn')   return 'warn';
+  return 'ok';
+}
+
+/* =====================================================
+   RENDER: BASELINE
+===================================================== */
+function renderBaseline() {
+  const b = state.baseline;
+  const grid = document.getElementById('baseline-grid');
+  grid.innerHTML = '';
+  Object.entries(b.layers).forEach(([name, cfg]) => {
+    grid.appendChild(el(`
+      <div class="baseline-card l-${name}">
+        <div class="accent-bar"></div>
+        <div class="label">${name}</div>
+        <div class="value">${cfg.planned}</div>
+        <div class="meta">规划 SKU · 价格带 ${fmt.money(cfg.priceBand[0])}–${fmt.money(cfg.priceBand[1])}</div>
+        <div class="meta" style="margin-top:6px;color:var(--text)"><strong>倍率红线 ${cfg.redLine.toFixed(1)}</strong> · 目标 ${cfg.targetMarkUp.toFixed(1)}</div>
+      </div>
+    `));
+  });
+
+  // 5 个系列卡片
+  const seriesGrid = document.getElementById('baseline-series-grid');
+  if (seriesGrid) {
+    seriesGrid.innerHTML = '';
+    Object.entries(b.series || {}).forEach(([name, cfg]) => {
+      seriesGrid.appendChild(el(`
+        <div class="baseline-card series-card series-${name}">
+          <div class="accent-bar"></div>
+          <div class="label">${name}</div>
+          <div class="value">${cfg.planned}</div>
+          <div class="meta">规划 SKU · 价格带 ${fmt.money(cfg.priceBand[0])}–${fmt.money(cfg.priceBand[1])}</div>
+          <div class="meta" style="margin-top:6px;color:var(--text)"><strong>倍率红线 ${cfg.redLine.toFixed(1)}</strong> · 目标 ${cfg.targetMarkUp.toFixed(1)}</div>
+        </div>
+      `));
+    });
+  }
+
+  // 5×4 基线矩阵
+  const matrixHost = document.getElementById('baseline-matrix');
+  if (matrixHost && b.matrix) {
+    matrixHost.innerHTML = '';
+    const layers = ['引流款','延续款','复购新款','形象款'];
+    const seriesList = Object.keys(b.matrix);
+
+    // header
+    matrixHost.appendChild(el(`<div class="cell corner head">系列 \\ 分层</div>`));
+    layers.forEach(L => matrixHost.appendChild(el(`<div class="cell head"><span class="badge-layer l-${L}">${L}</span></div>`)));
+
+    // data
+    seriesList.forEach(S => {
+      matrixHost.appendChild(el(`<div class="cell head"><span style="font-size:12px;color:var(--text);font-weight:600">${S}</span></div>`));
+      layers.forEach(L => {
+        const planned = b.matrix[S][L] || 0;
+        const actual = state.skus.filter(s => s.series === S && s.layer === L).length;
+        const drift = actual - planned;
+        const driftCls = drift > 0 ? 'over' : (drift < 0 ? 'under' : '');
+        const driftTxt = drift === 0 ? '持平' : (drift > 0 ? `+${drift}` : `${drift}`);
+        matrixHost.appendChild(el(`
+          <div class="cell">
+            <div style="font-size:12px;color:var(--text-muted);font-weight:500">规划 <span style="color:var(--text);font-size:16px;font-weight:700">${planned}</span></div>
+            <div style="font-size:12px;color:var(--text-muted)">实际 ${actual}</div>
+            ${drift !== 0 ? `<div class="risk" style="color:${drift > 0 ? 'var(--warning)' : 'var(--accent)'};font-weight:600">${driftTxt}</div>` : '<div style="font-size:12px;color:var(--success);margin-top:auto">✓</div>'}
+          </div>
+        `));
+      });
+    });
+  }
+
+  // summary line
+  const actualTotal = state.skus.length;
+  const totalPlanned = b.totalPlanned;
+  document.getElementById('baseline-summary').innerHTML = `
+    <div class="item"><span class="k">季度</span><span class="v">${b.season}</span></div>
+    <div class="item"><span class="k">品类结构</span><span class="v">${b.categories.join(' / ')}</span></div>
+    <div class="item"><span class="k">规划款数</span><span class="v">${totalPlanned} 款</span></div>
+    <div class="item"><span class="k">实际开发</span><span class="v">${actualTotal} 款 (${Math.round(actualTotal/totalPlanned*100)}%)</span></div>
+    <div class="item"><span class="k">关键节点</span><span class="v">样衣封样 ${b.timeline['样衣封样']}</span></div>
+  `;
+}
+
+/* =====================================================
+   RENDER: WATER LEVEL
+===================================================== */
+function renderWater() {
+  const b = state.baseline;
+  const wrap = document.getElementById('water-grid');
+  wrap.innerHTML = '';
+  // Compute actual count per layer
+  const actuals = {};
+  state.skus.forEach(s => { actuals[s.layer] = (actuals[s.layer] || 0) + 1; });
+
+  const maxBarWidth = 600; // px reference for scaling
+  const layers = ['引流款','延续款','复购新款','形象款'];
+  const max = Math.max(...layers.map(l => Math.max(b.layers[l].planned, actuals[l]||0)));
+
+  layers.forEach(name => {
+    const planned = b.layers[name].planned;
+    const actual  = actuals[name] || 0;
+    const ratio   = actual / planned;
+    let status = 'ok', ico = '✓';
+    if (ratio > 1.20) { status = 'bad'; ico = '⚠'; }
+    else if (ratio > 1.00) { status = 'warn'; ico = '⚠'; }
+    else if (ratio < 0.6)  { status = 'ok'; ico = '⚠'; }
+
+    const planW  = (planned / max) * 100;
+    const actW   = (actual  / max) * 100;
+    const delta  = actual - planned;
+    const deltaTxt = delta === 0 ? '持平' : (delta > 0 ? `+${delta} 超量` : `${delta} 缺口`);
+    const deltaCls = ratio > 1.20 ? 'bad' : (ratio > 1.00 ? 'over' : (ratio < 0.6 ? 'under' : ''));
+
+    wrap.appendChild(el(`
+      <div class="water-row">
+        <div class="lane-label">
+          <span class="name">${name}</span>
+          <span class="sub">计划 ${planned} · 实际 <strong style="color:${status==='bad'?'var(--danger)':status==='warn'?'var(--warning)':'var(--text)'}">${actual}</strong></span>
+        </div>
+        <div class="lane-bar">
+          <div class="plan-mark" style="left:0;width:${planW}%"></div>
+          <div class="actual ${status==='bad'?'bad':status==='warn'?'warn':'ok'}" style="width:${actW}%"></div>
+        </div>
+        <div class="lane-stats">
+          <span class="nums">${actual} / ${planned}</span>
+          <span class="delta ${deltaCls}">${deltaTxt}</span>
+        </div>
+        <div class="lane-status ${status}">${ico}</div>
+      </div>
+    `));
+  });
+}
+
+/* =====================================================
+   RENDER: LAYER COMPLETION (重新设计 — 款数差额 + 完成度 + 系列分布 + 风险)
+===================================================== */
+function renderCompletion() {
+  const wrap = document.getElementById('completion-grid');
+  wrap.innerHTML = '';
+  const nodes = getNodesOrdered();
+  const lastNode = nodes[nodes.length - 1];
+  const layers = ['引流款','延续款','复购新款','形象款'];
+  const seriesList = ['经典商务系列','新商务系列','商旅系列','轻运动户外系列','跨系列基础款'];
+  const seriesColor = {
+    '经典商务系列':'#1e40af','新商务系列':'#0891b2','商旅系列':'#0d9488',
+    '轻运动户外系列':'#65a30d','跨系列基础款':'#94a3b8'
+  };
+
+  layers.forEach(name => {
+    const layerSkus = state.skus.filter(s => s.layer === name);
+    const total = layerSkus.length;
+    const completed = layerSkus.filter(s => s.node === lastNode).length;
+    const pct = total ? Math.round(completed / total * 100) : 0;
+    const pctCls = pct >= 70 ? 'ok' : (pct >= 40 ? 'warn' : 'bad');
+
+    // 款数差额 vs 规划
+    const planned = state.baseline?.layers[name]?.planned || 0;
+    const delta = total - planned;
+
+    // 风险数 (倍率红灯 或 滞后>7)
+    const riskCnt = layerSkus.filter(s => overallStatus(s, name) === 'danger' || s.delay > 7).length;
+
+    // 系列分布 (每个系列在该分层的款数)
+    const seriesBreakdown = seriesList.map(S => ({
+      name: S,
+      count: layerSkus.filter(s => s.series === S).length
+    })).filter(x => x.count > 0);
+
+    // 节点分布
+    const dist = nodes.map(n => ({
+      name: n,
+      count: layerSkus.filter(s => s.node === n).length
+    }));
+
+    // 主进度条 — 按节点分层着色
+    const segments = nodes.map((n, i) => {
+      const c = layerSkus.filter(s => s.node === n).length;
+      const w = total ? (c / total * 100) : 0;
+      const color = i === nodes.length - 1 ? 'var(--success)' : 'var(--accent)';
+      const opacity = i === nodes.length - 1 ? '1' : (0.35 + i / nodes.length * 0.45);
+      return `<div class="seg" style="width:${w}%;background:${color};opacity:${opacity}"></div>`;
+    }).join('');
+
+    // 系列分布水平堆叠条
+    const seriesBars = seriesBreakdown.map(s =>
+      `<div style="flex:${s.count};background:${seriesColor[s.name]};height:100%" title="${s.name}: ${s.count} 款"></div>`
+    ).join('');
+
+    wrap.appendChild(el(`
+      <div class="layer-complete-card l-${name}">
+        <div class="head">
+          <div class="layer-tag-block">
+            <span class="badge-layer l-${name}">${name}</span>
+            <span class="planned-info">规划 ${planned} · 实际 <strong style="color:${delta>0?'var(--warning)':delta<0?'var(--accent)':'var(--text)'}">${total}</strong> ${delta!==0?`<span style="font-size:12px;color:${delta>0?'var(--warning)':'var(--accent)'};font-weight:600">${delta>0?'+'+delta:delta}</span>`:''}</span>
+          </div>
+          <div class="pct-block">
+            <div class="pct ${pctCls}">${pct}%</div>
+            <div class="completed-sub">${completed}/${total} 已封样</div>
+          </div>
+        </div>
+
+        <div class="progress-bar">${segments}</div>
+
+        <div class="series-breakdown">
+          <div class="series-bar">${seriesBars}</div>
+          <div class="series-legend">
+            ${seriesBreakdown.map(s =>
+              `<span><span class="dot" style="background:${seriesColor[s.name]}"></span>${s.name} <strong>${s.count}</strong></span>`
+            ).join('')}
+          </div>
+        </div>
+
+        <div class="bottom-row">
+          <div class="node-mini">
+            ${dist.map((d, i) =>
+              `<div class="node-pill ${i === nodes.length - 1 ? 'completed' : ''}"><span class="np-dot"></span>${d.name} <strong>${d.count}</strong></div>`
+            ).join('')}
+          </div>
+          ${riskCnt > 0
+            ? `<span class="risk-badge"><span class="badge-dot"></span>${riskCnt} 风险款</span>`
+            : `<span class="ok-badge"><span class="badge-dot"></span>无风险</span>`}
+        </div>
+      </div>
+    `));
+  });
+}
+
+/* =====================================================
+   RENDER: STYLES (款维度总览)
+===================================================== */
+const COLOR_HEX = {
+  '黑色':'#1a1a1a','藏青':'#1e2a4a','灰色':'#6b7280','深灰':'#374151',
+  '卡其':'#a78a6f','白色':'#f8fafc','浅蓝':'#93c5fd','粉色':'#fbcfe8',
+  '棕色':'#7c4a2d','酒红':'#7f1d1d','驼色':'#c4a484','橄榄绿':'#556b2f',
+  '深蓝':'#1e3a8a','军绿':'#3a4a3a','红色':'#dc2626','米色':'#e8dfc8'
+};
+
+function renderStyles() {
+  const wrap = document.getElementById('style-grid');
+  wrap.innerHTML = '';
+  document.getElementById('cnt-style-all').textContent = state.styles.length;
+
+  state.styles.forEach(st => {
+    const styleSkus = getSkusByStyle(st.styleId);
+    const total = styleSkus.length;
+    const lastNode = (state.baseline && Object.keys(state.baseline.timeline).pop()) || '样衣封样';
+    const completed = styleSkus.filter(s => s.node === lastNode).length;
+    const pct = total ? Math.round(completed / total * 100) : 0;
+    const pctCls = pct >= 70 ? '' : (pct >= 40 ? 'warn' : 'bad');
+
+    const colorChips = [...new Set(styleSkus.map(s => s.color))].map(c =>
+      `<div class="color-swatch">
+        <span class="chip" style="background:${COLOR_HEX[c] || '#cbd5e1'}"></span>
+        <span>${c}</span>
+      </div>`
+    ).join('');
+
+    const layerBadge = st.lockedLayer
+      ? `<span class="badge badge-success" style="background:#d1fae5;color:#059669"><span class="badge-dot"></span> ${st.actualLayer}</span>`
+      : `<span class="badge" style="background:var(--warning-soft);color:var(--warning)"><span class="badge-dot"></span> 分层待定</span>`;
+
+    const lockBtn = st.lockedLayer
+      ? `<span class="muted" style="font-size:12px">已锁定</span>`
+      : `<button class="lock-btn" onclick="event.stopPropagation();openLockLayerModal('${st.styleId}')">⚡ 锁定分层</button>`;
+
+    wrap.appendChild(el(`
+      <div class="style-card series-${st.series}" onclick='openStyleDetail("${st.styleId}")'>
+        <div class="head">
+          <div class="name">${st.styleName}</div>
+          <span class="series-tag">${st.series}</span>
+        </div>
+        <div class="color-swatches">${colorChips}</div>
+        <div class="meta-row">
+          <span>${styleSkus.length} 色 · ${st.category}</span>
+          <span>${fmt.money(st.targetPrice)}</span>
+        </div>
+        <div class="progress-bar"><div class="fill ${pctCls}" style="width:${pct}%"></div></div>
+        <div class="pct"><strong>${pct}%</strong> 已封样 (${completed}/${total})</div>
+        <div class="layer-status">
+          ${layerBadge}
+          ${lockBtn}
+        </div>
+      </div>
+    `));
+  });
+}
+
+/* =====================================================
+   RENDER: IMPORTS LIST
+===================================================== */
+function renderImports() {
+  const wrap = document.getElementById('imports-list');
+  if (!wrap) return;
+  wrap.innerHTML = `
+    <div class="ttl">
+      <span>导入历史 · 改动可追溯</span>
+      <span class="muted" style="font-weight:400">数据来源 + 调整前后对比</span>
+    </div>
+    ${state.imports.map(imp => {
+      const typeMap = {
+        'style-color':     { badge: '<span class="badge badge-success"><span class="badge-dot"></span> 款色总表</span>',    icon: '📋' },
+        'layer-adjustment':{ badge: '<span class="badge badge-warning"><span class="badge-dot"></span> 分层调整</span>',    icon: '🔄' },
+        'progress-update': { badge: '<span class="badge" style="background:var(--accent-soft);color:var(--accent)"><span class="badge-dot"></span> 进度更新</span>', icon: '📈' }
+      };
+      const tm = typeMap[imp.type] || { badge: '<span class="badge">其他</span>', icon: '📄' };
+
+      let changeHtml = '';
+
+      // progress-update 类型的特殊展示
+      if (imp.type === 'progress-update' && imp.changes) {
+        const items = [];
+        if (imp.changes.styleColor > 0) items.push({ icon: '📋', name: '款色', n: imp.changes.styleColor });
+        if (imp.changes.progress > 0)   items.push({ icon: '📈', name: '节点', n: imp.changes.progress });
+        if (imp.changes.layerAdj > 0)   items.push({ icon: '🔄', name: '分层', n: imp.changes.layerAdj });
+        if (imp.changes.sales > 0)      items.push({ icon: '📊', name: '销售', n: imp.changes.sales });
+        if (imp.changes.images > 0)     items.push({ icon: '🖼', name: '图片', n: imp.changes.images });
+        changeHtml = `
+          <div class="changes-block">
+            <div class="changes-hdr">本次更新影响范围</div>
+            <div style="padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px">
+              ${items.map(it => `
+                <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg-soft);padding:4px 10px;border-radius:0;font-size:12px">
+                  <span>${it.icon}</span>
+                  <span style="font-weight:500;color:var(--text)">${it.name}</span>
+                  <strong style="color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums">${it.n}</strong>
+                  <span class="muted" style="font-size:12px">处改动</span>
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (imp.changes && imp.changes.length) {
+        // 旧格式：分层调整的 changes 数组
+        changeHtml = `
+          <div class="changes-block">
+            <div class="changes-hdr">改了哪里 · ${imp.changes.length} 处改动</div>
+            <div class="changes-list">
+              ${imp.changes.map(c => `
+                <div class="change-row">
+                  <span class="change-style">${c.styleName}</span>
+                  <span class="change-series">${c.series || ''}</span>
+                  <span class="change-arrow">${c.before === '未锁定' ? '<span class="badge" style="background:var(--warning-soft);color:var(--warning);font-size:12px">待定</span>' : '<span class="badge-layer l-' + c.before + '" style="font-size:12px">' + c.before + '</span>'}</span>
+                  <span class="change-arrow-icon">→</span>
+                  <span class="change-after"><span class="badge-layer l-${c.after}" style="font-size:12px">${c.after}</span></span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (imp.summary) {
+        changeHtml = `<div class="changes-block" style="background:var(--success-soft);border-left:3px solid var(--success)">
+          <div style="font-size:12px;color:var(--success);font-weight:600;padding:8px 12px">📦 ${imp.summary}</div>
+        </div>`;
+      }
+
+      return `
+        <div class="import-row">
+          <div class="row">
+            ${tm.badge}
+            <span class="file">${imp.fileName}</span>
+            <span class="meta">${imp.uploadedAt}</span>
+            <span class="meta">${imp.uploader}</span>
+          </div>
+          ${changeHtml}
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+   /* =====================================================
+   LOCK LAYER MODAL
+===================================================== */
+function openLockLayerModal(styleId) {
+  const st = getStyle(styleId);
+  if (!st) return;
+  state._lockTargetStyleId = styleId;
+
+  const m = document.getElementById('layer-modal');
+  document.getElementById('layer-modal-ttl').textContent = `为「${st.styleName}」锁定分层`;
+  const desc = document.getElementById('layer-modal-desc');
+  desc.innerHTML = `当前 <strong>${st.series}</strong> · 规划 ${st.plannedLayers.length} 个分层。锁定后，4 层水位图、倍率扫描、风险款台将立即按所选分层重新计算。`;
+
+  const opts = document.getElementById('layer-modal-opts');
+  const layers = ['引流款', '延续款', '复购新款', '形象款'];
+  const layerColor = {
+    '引流款':'#3b82f6','延续款':'#10b981','复购新款':'#a855f7','形象款':'#f97316'
+  };
+  opts.innerHTML = layers.map(L =>
+    `<button onclick="confirmLockLayer('${L}')">
+      <span class="l-dot" style="background:${layerColor[L]}"></span>
+      <span>${L}</span>
+      ${st.plannedLayers.includes(L) ? '<span class="muted" style="margin-left:auto;font-size:12px">规划内</span>' : '<span class="muted" style="margin-left:auto;font-size:12px">规划外</span>'}
+    </button>`
+  ).join('');
+
+  m.classList.add('open');
+  document.getElementById('layer-modal-backdrop').classList.add('open');
+}
+
+function closeLayerModal() {
+  document.getElementById('layer-modal').classList.remove('open');
+  document.getElementById('layer-modal-backdrop').classList.remove('open');
+}
+
+function confirmLockLayer(layer) {
+  const styleId = state._lockTargetStyleId;
+  const st = getStyle(styleId);
+  if (!st) return;
+  const beforeLayer = st.actualLayer || '未锁定';
+  st.lockedLayer = true;
+  st.actualLayer = layer;
+  // 同步更新该款所有 SKU
+  state.skus.filter(s => s.styleId === styleId).forEach(s => {
+    s.layer = layer;
+    s.actualLayer = layer;
+    s.lockedLayer = true;
+  });
+  // 记录导入 — 体现"改了哪里"
+  state.imports.unshift({
+    type: 'layer-adjustment',
+    fileName: `UI 锁定 · ${st.styleName}`,
+    uploadedAt: new Date().toLocaleString('zh-CN'),
+    uploader: '王总（当前操作）',
+    rowsParsed: 1,
+    status: 'success',
+    changes: [{
+      styleId,
+      styleName: st.styleName,
+      series: st.series,
+      before: beforeLayer,
+      after: layer
+    }]
+  });
+  closeLayerModal();
+  renderAll();
+  toast('success', `✓ ${st.styleName}: ${beforeLayer} → ${layer}`);
+}
+
+/* =====================================================
+   EXCEL UPLOAD HANDLERS
+===================================================== */
+function handleStyleColorUpload(e) {
+  // 已废弃：统一由 handleProgressUpdate 接管
+  handleProgressUpdate(e);
+}
+
+function handleLayerAdjustUpload(e) {
+  // 已废弃：统一由 handleProgressUpdate 接管
+  handleProgressUpdate(e);
+}
+
+// =====================================================
+// UNIVERSAL PROGRESS UPDATE HANDLER
+// 通用文件解析器：自动识别 Excel sheet 类型 + 图片
+// =====================================================
+let _parsedPending = null;
+
+async function handleProgressUpdate(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  toast('info', `⏳ 正在解析 ${files.length} 个文件...`);
+
+  const parsed = {
+    styleColor: null,
+    progress: null,
+    layerAdj: null,
+    sales: null,
+    images: [],
+    unknown: []
+  };
+
+  for (const file of files) {
+    const name = file.name;
+    if (name.match(/\.(xlsx|xls)$/i)) {
+      try {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        // 每个 sheet 都尝试匹配
+        for (const sheetName of wb.SheetNames) {
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
+          if (!rows.length) continue;
+          const matched = matchSheetType(rows);
+          if (matched) {
+            parsed[matched] = { rows, fileName: name, sheetName };
+          } else {
+            parsed.unknown.push({ fileName: name, sheetName, rowCount: rows.length });
+          }
+        }
+      } catch (err) {
+        toast('danger', `✗ 解析 ${name} 失败: ${err.message}`);
+      }
+    } else if (name.match(/\.(jpg|jpeg|png)$/i)) {
+      // 图片 — 限制大小 500KB
+      if (file.size > 500 * 1024) {
+        toast('warn', `⚠ ${name} 太大（${Math.round(file.size/1024)}KB），已跳过`);
+        continue;
+      }
+      const dataUrl = await readAsDataURL(file);
+      parsed.images.push({ fileName: name, dataUrl });
+    }
+  }
+
+  _parsedPending = parsed;
+  renderParsePreview(parsed);
+  toast('info', `解析完成 · ${countParsed(parsed)} 项可应用`);
+}
+
+function countParsed(p) {
+  let n = 0;
+  if (p.styleColor) n++;
+  if (p.progress) n++;
+  if (p.layerAdj) n++;
+  if (p.sales) n++;
+  n += p.images.length;
+  return n;
+}
+
+function matchSheetType(rows) {
+  if (!rows.length) return null;
+  const cols = Object.keys(rows[0]).map(c => c.toLowerCase().trim());
+  const has = col => cols.includes(col);
+
+  // 款色总表签名
+  if ((has('styleid') || has('style_id')) &&
+      (has('color') || has('色')) &&
+      (has('skucode') || has('sku_code') || has('sku'))) return 'styleColor';
+
+  // 节点进度表签名
+  if ((has('skucode') || has('sku_code') || has('sku')) &&
+      (has('node') || has('节点'))) return 'progress';
+
+  // 分层调整表签名
+  if ((has('styleid') || has('style_id')) &&
+      (has('actuallayer') || has('layer') || has('分层'))) return 'layerAdj';
+
+  // 销售复盘表签名
+  if ((has('category') || has('品类')) &&
+      ((has('sellthrough') || has('售罄率')) || (has('discount') || has('折扣率')))) return 'sales';
+
+  return null;
+}
+
+function readAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = e => resolve(e.target.result);
+    r.onerror = e => reject(e);
+    r.readAsDataURL(file);
+  });
+}
+
+function renderParsePreview(parsed) {
+  const wrap = document.getElementById('parse-preview');
+  if (!wrap) return;
+
+  const sections = [
+    { key: 'styleColor', icon: '📋', name: '款色总表',    desc: '款式 + 色 SKU 全量数据' },
+    { key: 'progress',   icon: '📈', name: '节点进度表',  desc: 'SKU 当前节点 / 滞后天数' },
+    { key: 'layerAdj',   icon: '🔄', name: '分层调整表',  desc: '批量锁定款的 actualLayer' },
+    { key: 'sales',      icon: '📊', name: '销售复盘表',  desc: '品类售罄率 / 折扣率' }
+  ];
+
+  const sectionsHtml = sections.filter(s => parsed[s.key]).map(s => {
+    const p = parsed[s.key];
+    return `
+      <div class="pp-section">
+        <div class="pp-row">
+          <span class="pp-icon">${s.icon}</span>
+          <span class="pp-name">${s.name}</span>
+          <span class="pp-meta">${p.rows.length} 行 · sheet "${p.sheetName}" · ${s.desc}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const imagesHtml = parsed.images.length ? `
+    <div class="pp-section">
+      <div class="pp-row">
+        <span class="pp-icon">🖼</span>
+        <span class="pp-name">款式图</span>
+        <span class="pp-meta">${parsed.images.length} 张图片 · 将按文件名匹配 SKU</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;padding-left:24px">
+        ${parsed.images.map(img => `
+          <div style="display:flex;align-items:center;gap:4px;font-size:12px;background:var(--bg-soft);padding:3px 6px;border-radius:0;height:18px;border-radius:0;object-fit:cover">
+            <span>${img.fileName}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  const unknownHtml = parsed.unknown.length ? `
+    <div class="pp-section">
+      ${parsed.unknown.map(u => `
+        <div class="pp-row unknown">
+          <span class="pp-icon">❓</span>
+          <span class="pp-name">未识别</span>
+          <span class="pp-meta">${u.fileName} · sheet "${u.sheetName}" · ${u.rowCount} 行 · 列名不匹配任何已知类型</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  const totalCount = countParsed(parsed);
+
+  if (!totalCount && !parsed.unknown.length) {
+    wrap.classList.remove('visible');
+    return;
+  }
+
+  wrap.classList.add('visible');
+  wrap.innerHTML = `
+    <div class="pp-head">
+      <span class="pp-title">解析预览 · 自动识别 ${totalCount} 项${parsed.unknown.length ? ` · ${parsed.unknown.length} 项未识别` : ''}</span>
+      <div class="pp-actions">
+        <button class="btn btn-secondary btn-sm" onclick="cancelParsePreview()">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="applyParsedData()">✓ 应用到看板</button>
+      </div>
+    </div>
+    <div class="pp-body">
+      ${sectionsHtml}
+      ${imagesHtml}
+      ${unknownHtml}
+    </div>
+  `;
+}
+
+function cancelParsePreview() {
+  _parsedPending = null;
+  document.getElementById('parse-preview').classList.remove('visible');
+  document.getElementById('update-files').value = '';
+  toast('info', '已取消本次更新');
+}
+
+function applyParsedData() {
+  if (!_parsedPending) return;
+  const parsed = _parsedPending;
+  const changes = { styleColor: 0, progress: 0, layerAdj: 0, sales: 0, images: 0 };
+
+  // 1. 款色总表
+  if (parsed.styleColor) {
+    parsed.styleColor.rows.forEach(row => {
+      // 标准化列名
+      const r = normalizeRow(row);
+      const styleId = r.styleid || r.style_id;
+      if (!styleId) return;
+      let st = getStyle(styleId);
+      if (!st && r.stylename) {
+        // 新款：新建
+        st = {
+          styleId,
+          styleName: r.stylename,
+          series: r.series || '跨系列基础款',
+          category: r.category || r.cat || '外套',
+          targetPrice: +(r.targetprice || r.price || 0),
+          plannedLayers: [r.actuallayer || r.layer || '延续款'],
+          lockedLayer: false,
+          actualLayer: null
+        };
+        state.styles.push(st);
+      }
+      // 更新或新建 SKU
+      const skuCode = r.skucode || r.sku_code || r.sku;
+      if (skuCode) {
+        let sku = state.skus.find(s => s.skuCode === skuCode || s.id === skuCode);
+        const color = r.color || '';
+        if (!sku) {
+          sku = {
+            id: skuCode,
+            skuCode,
+            styleId,
+            color,
+            name: (st.styleName || '') + (color ? ' · ' + color : ''),
+            series: st.series,
+            cat: st.category,
+            price: st.targetPrice,
+            cost: +(r.cost || 0),
+            node: r.node || '企划稿',
+            planned: r.planned || state.baseline.timeline[r.node || '企划稿'],
+            actual: r.actual || r.planned,
+            delay: +(r.delay || 0),
+            layer: r.layer || r.actuallayer || null,
+            actualLayer: r.actuallayer || null,
+            lockedLayer: !!r.actuallayer
+          };
+          state.skus.push(sku);
+        } else {
+          // 更新现有
+          if (r.cost) sku.cost = +(r.cost);
+          if (r.node) sku.node = r.node;
+          if (r.delay !== undefined) sku.delay = +(r.delay || 0);
+          if (r.layer) sku.layer = r.layer;
+        }
+        changes.styleColor++;
+      }
+    });
+  }
+
+  // 2. 节点进度表
+  if (parsed.progress) {
+    parsed.progress.rows.forEach(row => {
+      const r = normalizeRow(row);
+      const skuCode = r.skucode || r.sku_code || r.sku;
+      const sku = state.skus.find(s => s.skuCode === skuCode || s.id === skuCode);
+      if (!sku) return;
+      if (r.node) sku.node = r.node;
+      if (r.delay !== undefined) sku.delay = +(r.delay || 0);
+      if (r.cost) sku.cost = +(r.cost);
+      changes.progress++;
+    });
+  }
+
+  // 3. 分层调整表
+  if (parsed.layerAdj) {
+    parsed.layerAdj.rows.forEach(row => {
+      const r = normalizeRow(row);
+      const styleId = r.styleid || r.style_id;
+      const st = getStyle(styleId);
+      if (!st) return;
+      const before = st.actualLayer || '未锁定';
+      const after = r.actuallayer || r.layer;
+      st.lockedLayer = true;
+      st.actualLayer = after;
+      state.skus.filter(s => s.styleId === styleId).forEach(s => {
+        s.layer = after;
+        s.actualLayer = after;
+        s.lockedLayer = true;
+      });
+      changes.layerAdj++;
+    });
+  }
+
+  // 4. 销售复盘表
+  if (parsed.sales) {
+    parsed.sales.rows.forEach(row => {
+      const r = normalizeRow(row);
+      const cat = r.category || r.categor || r.品类;
+      if (!cat) return;
+      let sc = state.sales.categories.find(c => c.category === cat || c.name === cat);
+      if (!sc) {
+        sc = { name: cat, category: cat, sellThrough: 0, discount: 1, planShare: 0 };
+        state.sales.categories.push(sc);
+      }
+      if (r.sellthrough !== undefined) sc.sellThrough = +(r.sellthrough);
+      if (r.discount !== undefined) sc.discount = +(r.discount);
+      if (r.planshare !== undefined) sc.planShare = +(r.planshare);
+      changes.sales++;
+    });
+  }
+
+  // 5. 图片 — 按文件名推断 SKU 编号
+  if (parsed.images.length) {
+    parsed.images.forEach(img => {
+      // 文件名匹配规则：FW26-013-BLK 或 STY-013 等
+      const m = img.fileName.match(/(FW26-\d+|STY-\d+)/i);
+      if (m) {
+        const code = m[1].toUpperCase();
+        const sku = state.skus.find(s => s.skuCode === code || s.styleId === code || s.id === code);
+        if (sku) {
+          sku.image = img.dataUrl;
+          changes.images++;
+        }
+      }
+    });
+  }
+
+  // 写 imports 记录
+  const fileNames = [
+    parsed.styleColor?.fileName,
+    parsed.progress?.fileName,
+    parsed.layerAdj?.fileName,
+    parsed.sales?.fileName
+  ].filter(Boolean);
+  parsed.images.forEach(i => fileNames.push(i.fileName));
+
+  state.imports.unshift({
+    type: 'progress-update',
+    fileName: fileNames.join(', '),
+    uploadedAt: new Date().toLocaleString('zh-CN'),
+    uploader: '当前用户',
+    changes,
+    parsedSummary: {
+      styleColor: parsed.styleColor?.rows.length || 0,
+      progress: parsed.progress?.rows.length || 0,
+      layerAdj: parsed.layerAdj?.rows.length || 0,
+      sales: parsed.sales?.rows.length || 0,
+      images: parsed.images.length
+    }
+  });
+
+  _parsedPending = null;
+  document.getElementById('parse-preview').classList.remove('visible');
+  document.getElementById('update-files').value = '';
+
+  renderAll();
+  toast('success', `✓ 已应用 · ${Object.entries(changes).filter(([,v])=>v).map(([k,v])=>`${k}=${v}`).join(' · ')}`);
+}
+
+function normalizeRow(row) {
+  // 标准化列名为小写无空格
+  const out = {};
+  Object.entries(row).forEach(([k, v]) => {
+    out[String(k).toLowerCase().trim()] = v;
+  });
+  return out;
+}
+
+function simulateUpdate() {
+  // 演示模式：模拟一次完整的更新（节点 + 分层 + 图片）
+  const changes = { styleColor: 0, progress: 0, layerAdj: 0, sales: 0, images: 0 };
+
+  // 模拟节点进度更新：把 3 款未封样的推进一步
+  const updates = [
+    { skuCode: 'FW26-006-BLK', fromNode: '面辅料定样', toNode: '成本核算完成' }, // 简约风衣
+    { skuCode: 'FW26-035-BLK', fromNode: '面辅料定样', toNode: '图稿确认' },     // 小羊皮夹克
+    { skuCode: 'FW26-046-OLV', fromNode: '面辅料定样', toNode: '成本核算完成' }  // 派克大衣
+  ];
+  updates.forEach(u => {
+    const sku = state.skus.find(s => s.skuCode === u.skuCode);
+    if (sku) {
+      sku.node = u.toNode;
+      sku.delay = 0;
+      changes.progress++;
+    }
+  });
+
+  // 模拟分层调整：锁定 2 个款
+  const lockUpdates = [
+    { styleId: 'STY-027', after: '引流款', name: '基础白T恤' },
+    { styleId: 'STY-021', after: '复购新款', name: '现代轻商务夹克' }
+  ];
+  lockUpdates.forEach(u => {
+    const st = getStyle(u.styleId);
+    if (st) {
+      st.lockedLayer = true;
+      st.actualLayer = u.after;
+      state.skus.filter(s => s.styleId === u.styleId).forEach(s => {
+        s.layer = u.after;
+        s.actualLayer = u.after;
+        s.lockedLayer = true;
+      });
+      changes.layerAdj++;
+    }
+  });
+
+  state.imports.unshift({
+    type: 'progress-update',
+    fileName: '模拟更新（演示）',
+    uploadedAt: new Date().toLocaleString('zh-CN'),
+    uploader: '演示数据',
+    changes,
+    parsedSummary: { progress: updates.length, layerAdj: lockUpdates.length, images: 0 }
+  });
+
+  renderAll();
+  toast('success', `✓ 模拟更新完成 · 节点推进 ${changes.progress} · 分层锁定 ${changes.layerAdj}`);
+}
+
+// =====================================================
+// UNIVERSAL PROGRESS UPDATE HANDLER 结束
+// =====================================================
+
+/* =====================================================
+   STYLE → DRAWER
+===================================================== */
+function openStyleDetail(styleId) {
+  const st = getStyle(styleId);
+  if (!st) return;
+  // 改为打开款级 drawer
+  openStyleDrawer(styleId);
+  toast('info', `已展开「${st.styleName}」3 色对比`);
+}
+
+/* =====================================================
+   RENDER: COLOR GRID (色维度 · 48 SKU 卡片)
+===================================================== */
+function renderColorGrid() {
+  const wrap = document.getElementById('color-grid');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  const nodes = getNodesOrdered();
+  const lastNode = nodes[nodes.length - 1];
+
+  state.skus.forEach(sku => {
+    const st = getStyle(sku.styleId);
+    const mu = calcMarkUp(sku);
+    const ms = muStatus(sku, sku.layer);
+    const ns = nodeStatus(sku);
+    const completed = sku.node === lastNode;
+    const pct = completed ? 100 : Math.max(0, 100 - (nodes.indexOf(sku.node) / nodes.length) * 100);
+
+    const layerBadge = sku.layer
+      ? `<span class="badge-layer l-${sku.layer}" style="font-size:12px">${sku.layer}</span>`
+      : `<span class="badge" style="background:var(--warning-soft);color:var(--warning);font-size:12px">待定</span>`;
+
+    const statusDot = ms === 'danger' ? 'var(--danger)'
+                    : ms === 'warn'   ? 'var(--warning)'
+                    : ms === 'pending'? 'var(--text-light)'
+                    : 'var(--success)';
+
+    wrap.appendChild(el(`
+      <div class="style-card color-card" style="border-left:4px solid ${statusDot};cursor:pointer" onclick="openDrawer('${sku.id}')">
+        <div class="head" style="margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="display:inline-block;width:18px;height:18px;border-radius:0;background:${COLOR_HEX[sku.color] || '#cbd5e1'};border:1px solid rgba(0,0,0,.15);flex-shrink:0"></span>
+            <span style="font-size:12px;font-weight:600;color:var(--text);line-height:1.2">${sku.color}</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;min-height:28px;line-height:1.3">${st ? st.styleName : sku.styleId}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+          ${layerBadge}
+          <span class="badge" style="background:var(--primary-soft);color:var(--text-muted);font-size:9px">${sku.cat}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;margin-bottom:4px">
+          成本 ${fmt.money(sku.cost)} · <strong class="${ms==='danger'?'danger-text':ms==='warn'?'warn-text':'ok-text'}">${mu.toFixed(2)}x</strong>
+        </div>
+        <div style="font-size:12px;color:${ns==='danger'?'var(--danger)':ns==='warn'?'var(--warning)':'var(--text-muted)'};margin-bottom:6px">
+          ${sku.node}${sku.delay > 0 ? ` <span style="font-weight:600">+${sku.delay}d</span>` : ''}
+        </div>
+        <div class="progress-bar" style="height:4px;background:#e2e8f0;border-radius:0;overflow:hidden">
+          <div style="height:100%;background:${completed?'var(--success)':'var(--accent)'};width:${pct}%;border-radius:0"></div>
+        </div>
+      </div>
+    `));
+  });
+
+  // 计数
+  const cntAll = document.getElementById('cnt-color-all');
+  const cntRed = document.getElementById('cnt-color-red');
+  if (cntAll) cntAll.textContent = state.skus.length;
+  if (cntRed) cntRed.textContent = state.skus.filter(s => overallStatus(s, s.layer) === 'danger').length;
+}
+
+/* =====================================================
+   RENDER: SERIES PROGRESS (4 series aggregate)
+===================================================== */
+function renderSeriesProgress() {
+  const wrap = document.getElementById('series-progress-grid');
+  wrap.innerHTML = '';
+  const nodes = getNodesOrdered();
+  const lastNode = nodes[nodes.length - 1];
+  const seriesList = ['经典商务系列','新商务系列','商旅系列','轻运动户外系列'];
+
+  seriesList.forEach(name => {
+    const seriesSkus = state.skus.filter(s => s.series === name);
+    const total = seriesSkus.length;
+    const completed = seriesSkus.filter(s => s.node === lastNode).length;
+    const pct = total ? Math.round(completed / total * 100) : 0;
+    const pctCls = pct >= 70 ? 'ok' : (pct >= 40 ? 'warn' : 'bad');
+
+    // breakdown by layer inside this series
+    const layerBreakdown = ['引流款','延续款','复购新款','形象款'].map(L => ({
+      name: L,
+      count: seriesSkus.filter(s => s.layer === L).length
+    }));
+
+    // node distribution
+    const dist = nodes.map(n => ({
+      name: n,
+      count: seriesSkus.filter(s => s.node === n).length
+    }));
+
+    const segments = nodes.map((n, i) => {
+      const c = seriesSkus.filter(s => s.node === n).length;
+      const w = total ? (c / total * 100) : 0;
+      const color = i === nodes.length - 1 ? 'var(--success)' : 'var(--accent)';
+      const opacity = i === nodes.length - 1 ? '1' : (0.35 + i / nodes.length * 0.45);
+      return `<div class="seg" style="width:${w}%;background:${color};opacity:${opacity}"></div>`;
+    }).join('');
+
+    wrap.appendChild(el(`
+      <div class="completion-card s-${name}">
+        <div class="head">
+          <div>
+            <div class="name">${name}<span class="series-tag">系列</span></div>
+            <div class="meta" style="margin-top:2px;margin-bottom:0"><strong>${completed}</strong> / ${total} 款已封样</div>
+          </div>
+          <div class="pct ${pctCls}">${pct}%</div>
+        </div>
+        <div class="progress-bar">${segments}</div>
+        <div class="node-dist">
+          ${dist.map((d, i) => `
+            <div class="row ${i === nodes.length - 1 ? 'completed' : ''}">
+              <span class="lbl">${d.name}</span>
+              <span class="bar"><span class="fill ${i === nodes.length - 1 ? 'ok' : ''}" style="width:${total ? d.count/total*100 : 0}%"></span></span>
+              <span class="num">${d.count}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);font-size:12px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap">
+          ${layerBreakdown.filter(l => l.count).map(l =>
+            `<span style="background:var(--primary-soft);padding:2px 6px;border-radius:0;font-weight:600;color:var(--prada-gold)">${l.count}</span> <span style="color:var(--text-muted)">${l.name}</span>`
+          ).join('')}
+        </div>
+      </div>
+    `));
+  });
+}
+
+/* =====================================================
+   RENDER: LAYER × SERIES MATRIX
+===================================================== */
+function renderMatrix() {
+  const wrap = document.getElementById('matrix-table');
+  wrap.innerHTML = '';
+  const layers = ['引流款','延续款','复购新款','形象款'];
+  const seriesList = ['经典商务系列','新商务系列','商旅系列','轻运动户外系列'];
+
+  // header row
+  wrap.appendChild(el(`<div class="cell corner head">分层 \\ 系列</div>`));
+  seriesList.forEach(s => wrap.appendChild(el(`<div class="cell head">${s}</div>`)));
+
+  // data rows
+  layers.forEach(L => {
+    wrap.appendChild(el(`<div class="cell head"><span class="layer-name"><span class="badge-layer l-${L}">${L}</span></span></div>`));
+    seriesList.forEach(S => {
+      const cellSkus = state.skus.filter(s => s.layer === L && s.series === S);
+      const cnt = cellSkus.length;
+      const reds = cellSkus.filter(s => overallStatus(s, L) === 'danger').length;
+      const yellows = cellSkus.filter(s => overallStatus(s, L) === 'warn').length;
+      const avgMu = cnt ? +(cellSkus.reduce((s,x) => s + x.price/x.cost, 0) / cnt).toFixed(1) : 0;
+
+      let cls = '';
+      let bg = '';
+      if (reds > 0)      { cls = 'danger'; bg = 'var(--danger)'; }
+      else if (yellows)  { cls = 'warn';   bg = 'var(--warning)'; }
+      else if (cnt)      { cls = 'ok';     bg = 'var(--success)'; }
+
+      if (!cnt) {
+        wrap.appendChild(el(`<div class="cell empty"><span class="layer-tag" style="text-align:center">—</span></div>`));
+      } else {
+        wrap.appendChild(el(`
+          <div class="cell ${cls}" onclick='openMatrixFilter("${L}","${S}")' style="cursor:pointer">
+            ${bg ? `<div class="fill-bg" style="background:${bg}"></div>` : ''}
+            <div class="num">${cnt}</div>
+            <div class="mu">μ ${avgMu}x · ${reds ? `<span style="color:var(--danger);font-weight:600">${reds} 红灯</span>` : yellows ? `<span style="color:var(--warning)">${yellows} 黄灯</span>` : '全绿'}</div>
+            ${reds > 0 ? `<div class="risk">需 review</div>` : ''}
+          </div>
+        `));
+      }
+    });
+  });
+}
+
+function openMatrixFilter(layer, series) {
+  // simple scroll to risk table with pre-filled filter
+  document.getElementById('sec-decisions').scrollIntoView({ behavior: 'smooth' });
+  toast('info', `已筛选: ${layer} × ${series}`);
+}
+
+/* =====================================================
+   RENDER: TABLES (node + markup)
+===================================================== */
+function getNodesOrdered() {
+  return state.baseline ? Object.keys(state.baseline.timeline) : [];
+}
+
+function renderTable() {
+  const tab = state.tab;
+  const filter = state.filter;
+  const search = state.search.toLowerCase();
+  const host = document.getElementById('table-host');
+
+  let rows = state.skus.slice();
+  if (filter === 'red')  rows = rows.filter(s => overallStatus(s, s.layer) === 'danger');
+  if (filter === 'warn') rows = rows.filter(s => overallStatus(s, s.layer) === 'warn');
+  if (search) rows = rows.filter(s =>
+    s.id.toLowerCase().includes(search) || s.name.toLowerCase().includes(search)
+  );
+
+  if (tab === 'node') {
+    const nodes = getNodesOrdered();
+    host.innerHTML = `
+      <div class="table-wrap" style="max-height:520px;overflow:auto">
+        <table class="data">
+          <thead><tr>
+            <th>SKU</th><th>名称</th><th>分层</th><th>品类</th>
+            <th>当前节点</th><th>节点进度</th>
+            <th class="num">计划完成</th><th class="num">实际完成</th>
+            <th class="num">滞后天数</th><th>状态</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(s => {
+              const ns = nodeStatus(s);
+              const idx = nodes.indexOf(s.node);
+              const pct = ((idx + 1) / nodes.length) * 100;
+              return `
+                <tr class="${ns==='danger'?'row-danger':ns==='warn'?'row-warn':''}" onclick='openDrawer("${s.id}")'>
+                  <td><span class="mono">${s.id}</span></td>
+                  <td><strong>${s.name}</strong></td>
+                  <td><span class="badge-layer l-${s.layer}">${s.layer}</span></td>
+                  <td>${s.cat}</td>
+                  <td>${s.node}</td>
+                  <td>
+                    <div class="progress">
+                      <div class="bar"><div class="fill" style="width:${pct}%;background:${idx===nodes.length-1?'var(--success)':'var(--accent)'}"></div></div>
+                      <span class="lbl">${idx+1}/${nodes.length}</span>
+                    </div>
+                  </td>
+                  <td class="num">${s.planned}</td>
+                  <td class="num">${s.actual}</td>
+                  <td class="num ${ns==='danger'?'danger-text':ns==='warn'?'warn-text':''}"><strong>${s.delay>0?'+':''}${s.delay}</strong></td>
+                  <td>
+                    ${ns==='danger'?'<span class="badge badge-danger"><span class="badge-dot"></span> 红灯</span>':
+                      ns==='warn'?'<span class="badge badge-warning"><span class="badge-dot"></span> 黄灯</span>':
+                      '<span class="badge badge-success"><span class="badge-dot"></span> 绿灯</span>'}
+                  </td>
+                </tr>
+              `;
+            }).join('') || '<tr><td colspan="10" class="empty">无符合筛选条件的款式</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } else {
+    host.innerHTML = `
+      <div class="table-wrap" style="max-height:520px;overflow:auto">
+        <table class="data">
+          <thead><tr>
+            <th>SKU</th><th>名称</th><th>分层</th><th>品类</th>
+            <th class="num">企划价</th><th class="num">实际成本</th>
+            <th class="num">建议最低吊牌</th>
+            <th class="num">计算倍率</th><th class="num">红线</th><th>合规性</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(s => {
+              const mu = calcMarkUp(s);
+              const ms = muStatus(s, s.layer);
+              const red = s.layer ? state.baseline.layers[s.layer].redLine : 0;
+              const minPrice = red ? Math.ceil(s.cost * red / 100) * 100 : 0;
+              const layerBadge = s.layer
+                ? `<span class="badge-layer l-${s.layer}">${s.layer}</span>`
+                : `<span class="badge" style="background:var(--warning-soft);color:var(--warning)">⚠ 待定</span>`;
+              return `
+                <tr class="${ms==='danger'?'row-danger':ms==='warn'?'row-warn':''}" onclick='openDrawer("${s.id}")'>
+                  <td><span class="mono">${s.id}</span></td>
+                  <td><strong>${s.name}</strong></td>
+                  <td>${layerBadge}</td>
+                  <td>${s.cat}</td>
+                  <td class="num">${fmt.money(s.price)}</td>
+                  <td class="num">${fmt.money(s.cost)}</td>
+                  <td class="num"><strong>${red ? fmt.money(minPrice) : '—'}</strong></td>
+                  <td class="num ${ms==='danger'?'danger-text':ms==='warn'?'warn-text':ms==='pending'?'muted':'ok-text'}"><strong>${mu.toFixed(2)}</strong></td>
+                  <td class="num">${red ? red.toFixed(1) : '—'}</td>
+                  <td>
+                    ${ms==='danger'?'<span class="badge badge-danger"><span class="badge-dot"></span> 跌破红线</span>':
+                      ms==='warn'?'<span class="badge badge-warning"><span class="badge-dot"></span> 偏低风险</span>':
+                      ms==='pending'?'<span class="badge" style="background:var(--warning-soft);color:var(--warning)">⚠ 分层待定</span>':
+                      '<span class="badge badge-success"><span class="badge-dot"></span> 合规</span>'}
+                  </td>
+                </tr>
+              `;
+            }).join('') || '<tr><td colspan="10" class="empty">无符合筛选条件的款式</td></tr>'}
+          </tbody>
+        </table>
+    `;
+  }
+}
+
+/* =====================================================
+   RENDER: COUNTS (top of dashboard)
+===================================================== */
+function renderCounts() {
+  const cntAll  = state.skus.length;
+  const cntRed  = state.skus.filter(s => overallStatus(s, s.layer) === 'danger').length;
+  const cntWarn = state.skus.filter(s => overallStatus(s, s.layer) === 'warn').length;
+  document.getElementById('cnt-all').textContent  = cntAll;
+  document.getElementById('cnt-red').textContent  = cntRed;
+  document.getElementById('cnt-warn').textContent = cntWarn;
+  document.getElementById('cnt-node').textContent = cntAll;
+  document.getElementById('cnt-mu').textContent   = cntAll;
+}
+
+/* =====================================================
+   RENDER: SALES (price band chart + insights)
+===================================================== */
+function renderSales() {
+  document.getElementById('sales-cat-count').textContent = state.sales.categories.length;
+
+  // Price band deviation chart per category
+  const b = state.baseline;
+  const wrap = document.getElementById('price-band-chart');
+  wrap.innerHTML = '';
+  const categories = [...new Set(state.skus.map(s => s.cat))];
+  const allPrices = state.skus.map(s => s.price);
+  const globalMin = Math.min(...allPrices, ...Object.values(b.layers).flatMap(l => l.priceBand)) * 0.7;
+  const globalMax = Math.max(...allPrices, ...Object.values(b.layers).flatMap(l => l.priceBand)) * 1.15;
+
+  categories.forEach(cat => {
+    const catSkus = state.skus.filter(s => s.cat === cat);
+    const plannedBands = [];
+    Object.values(b.layers).forEach(L => plannedBands.push(L.priceBand));
+    const planMin = Math.min(...plannedBands.map(p => p[0]));
+    const planMax = Math.max(...plannedBands.map(p => p[1]));
+
+    const priceToPct = p => ((p - globalMin) / (globalMax - globalMin)) * 100;
+
+    // Determine drift: avg vs band center
+    const avg = catSkus.reduce((s,x) => s + x.price, 0) / catSkus.length;
+    const bandCenter = (planMin + planMax) / 2;
+    const drift = (avg - bandCenter) / bandCenter;
+    const driftCls = drift > 0.1 ? 'over' : (drift < -0.1 ? 'under' : 'ok');
+    const driftTxt = drift > 0.1 ? `↑ 高价漂移 ${(drift*100).toFixed(0)}%` :
+                     drift < -0.1 ? `↓ 低价漂移 ${(Math.abs(drift)*100).toFixed(0)}%` :
+                     `→ 价格带内`;
+
+    wrap.appendChild(el(`
+      <div class="cat-row">
+        <div class="cat-label">
+          <span>${cat} <span class="muted" style="font-weight:400">· ${catSkus.length} 款</span></span>
+          <span class="${driftCls==='over'?'danger-text':driftCls==='under'?'warn-text':'ok-text'}" style="font-weight:600">${driftTxt}</span>
+        </div>
+        <div class="axis-wrap">
+          <div class="axis-bar ${driftCls}" style="left:${priceToPct(planMin)}%;width:${priceToPct(planMax)-priceToPct(planMin)}%"></div>
+          ${catSkus.map(s => {
+            const bad = overallStatus(s, s.layer) === 'danger';
+            return `<div class="dot ${bad?'bad':''}" style="left:${priceToPct(s.price)}%" title="${s.name} · ${fmt.money(s.price)}"></div>`;
+          }).join('')}
+        </div>
+        <div class="axis-ticks">
+          <span>${fmt.money(Math.round(globalMin))}</span>
+          <span>${fmt.money(Math.round((globalMin+globalMax)/2))}</span>
+          <span>${fmt.money(Math.round(globalMax))}</span>
+        </div>
+      </div>
+    `));
+  });
+
+  // Insights
+  const insights = document.getElementById('sales-insights');
+  insights.innerHTML = '';
+  // 1: jacket/coat discount
+  const coat = state.sales.categories.find(c => c.name === '外套');
+  if (coat) {
+    insights.appendChild(el(`
+      <div class="insight-card warn">
+        <div class="ico">📉</div>
+        <div class="body">
+          <div class="t">外套折扣已加深至 ${fmt.pct(coat.discount)}</div>
+          <div class="d">若维持当前倍率，渠道利润为负。建议形象款 <strong>更换平价面料</strong> 或 <strong>降级为延续款</strong>。</div>
+        </div>
+      </div>
+    `));
+  }
+  // 2: extend category sell-through
+  insights.appendChild(el(`
+    <div class="insight-card info">
+      <div class="ico">📊</div>
+      <div class="body">
+        <div class="t">裤装售罄率 ${fmt.pct(state.sales.categories.find(c=>c.name==='裤装').sellThrough)}，表现稳健</div>
+        <div class="d">延续款可保持当前深度，无需结构性调整。</div>
+      </div>
+    </div>
+  `));
+  // 3: 形象款 over capacity
+  insights.appendChild(el(`
+    <div class="insight-card danger">
+      <div class="ico">🚨</div>
+      <div class="body">
+        <div class="t">形象款已开发 ${state.skus.filter(s=>s.layer==='形象款').length} 款，超规划 ${state.skus.filter(s=>s.layer==='形象款').length - 12}</div>
+        <div class="d">建议立即启动 <strong>手术台</strong>，聚焦倍率红/黄灯款式决策砍/改/留。</div>
+      </div>
+    </div>
+  `));
+}
+
+/* =====================================================
+   RENDER: RISK TABLE
+===================================================== */
+function renderRisk() {
+  const b = state.baseline;
+  const risks = state.skus.filter(s => {
+    const ms = muStatus(s, s.layer);
+    const ns = nodeStatus(s);
+    return ms === 'danger' || (s.delay > 7);
+  });
+
+  document.getElementById('risk-summary').innerHTML = `
+    <div class="risk-card red">
+      <div class="lbl">倍率跌破红线</div>
+      <div class="val">${state.skus.filter(s=>muStatus(s,s.layer)==='danger').length}</div>
+      <div class="desc">款式</div>
+    </div>
+    <div class="risk-card yellow">
+      <div class="lbl">进度滞后 > 7 天</div>
+      <div class="val">${state.skus.filter(s=>s.delay>7).length}</div>
+      <div class="desc">款式</div>
+    </div>
+    <div class="risk-card green">
+      <div class="lbl">待整改总数</div>
+      <div class="val">${risks.length}</div>
+      <div class="desc">款式 (去重)</div>
+    </div>
+    <div class="risk-card blue">
+      <div class="lbl">预计影响吊牌额</div>
+      <div class="val">${(risks.reduce((s,x)=>s+x.price,0)/10000).toFixed(1)} 万</div>
+      <div class="desc">需重点 review</div>
+    </div>
+  `;
+
+  const tbody = document.getElementById('risk-tbody');
+  tbody.innerHTML = '';
+  risks.forEach(s => {
+    const mu = calcMarkUp(s);
+    const ms = muStatus(s, s.layer);
+    const red = s.layer ? b.layers[s.layer].redLine : 0;
+    const reasons = [];
+    if (ms === 'danger') reasons.push(`<span class="badge badge-danger"><span class="badge-dot"></span> 倍率 ${mu.toFixed(2)} &lt; ${red.toFixed(1)}</span>`);
+    if (s.delay > 7)    reasons.push(`<span class="badge badge-warning"><span class="badge-dot"></span> 滞后 ${s.delay} 天</span>`);
+
+    // suggested action
+    let action = '复核成本';
+    if (ms === 'danger' && s.layer === '形象款') action = '<strong style="color:var(--danger)">建议砍款</strong> 或降级为延续款';
+    else if (ms === 'danger') action = '更换平价面料 / 调整吊牌价';
+    else if (s.delay > 7) action = '立即催办责任人';
+
+    const layerBadge = s.layer
+      ? '<span class="badge-layer l-' + s.layer + '">' + s.layer + '</span>'
+      : '<span class="badge" style="background:var(--warning-soft);color:var(--warning)">⚠ 待定</span>';
+
+    const row = el(`
+      <tr class="${ms==='danger'?'row-danger':'row-warn'}">
+        <td onclick="event.stopPropagation()"><label class="cb"><input type="checkbox" data-sku="${s.id}" ${state.selectedRisk.has(s.id)?'checked':''} onchange="toggleRisk('${s.id}', this.checked)"><span class="box"></span></label></td>
+        <td onclick='openDrawer("${s.id}")'><span class="mono">${s.id}</span><br><span class="muted" style="font-size:12px">${s.name}</span></td>
+        <td onclick='openDrawer("${s.id}")'>${layerBadge}</td>
+        <td onclick='openDrawer("${s.id}")'>${s.node}</td>
+        <td class="num" onclick='openDrawer("${s.id}")">${fmt.money(s.price)}</td>
+        <td class="num" onclick='openDrawer("${s.id}")">${fmt.money(s.cost)}</td>
+        <td class="num" onclick='openDrawer("${s.id}")'><strong class="${ms==='danger'?'danger-text':'warn-text'}">${mu.toFixed(2)}</strong></td>
+        <td class="num" onclick='openDrawer("${s.id}")'>${s.layer ? red.toFixed(1) : '—'}</td>
+        <td onclick='openDrawer("${s.id}")'>${reasons.join(' ')}</td>
+        <td onclick='openDrawer("${s.id}")'>${action}</td>
+      </tr>
+    `);
+    tbody.appendChild(row);
+  });
+  if (!risks.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">🎉 当前无风险款式，可放心推进 review</td></tr>';
+  }
+
+  updateActionBar();
+}
+
+function updateActionBar() {
+  const n = state.selectedRisk.size;
+  document.getElementById('sel-count').textContent = n;
+  document.getElementById('action-bar').style.display = n > 0 ? 'flex' : 'none';
+}
+
+function toggleRisk(id, checked) {
+  if (checked) state.selectedRisk.add(id);
+  else state.selectedRisk.delete(id);
+  updateActionBar();
+}
+
+function toggleAllRisk(checked) {
+  const b = state.baseline;
+  state.skus.filter(s => {
+    const ms = muStatus(s, s.layer);
+    return ms === 'danger' || s.delay > 7;
+  }).forEach(s => {
+    if (checked) state.selectedRisk.add(s.id);
+    else state.selectedRisk.delete(s.id);
+  });
+  document.querySelectorAll('#risk-tbody input[type=checkbox]').forEach(cb => cb.checked = checked);
+  updateActionBar();
+}
+
+function clearRiskSelection() {
+  state.selectedRisk.clear();
+  document.querySelectorAll('#risk-tbody input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('select-all-risk').checked = false;
+  updateActionBar();
+}
+
+/* =====================================================
+   DRAWER
+===================================================== */
+function openStyleDrawer(styleId) {
+  const st = getStyle(styleId);
+  if (!st) return;
+  state.drawerStyleId = styleId;
+
+  // 找该款的所有 SKU
+  const styleSkus = getSkusByStyle(styleId);
+  const colors = [...new Set(styleSkus.map(s => s.color))];
+  // 默认选中第一个色（保持上次的或第一个）
+  if (!state.drawerSelectedColor || !colors.includes(state.drawerSelectedColor)) {
+    state.drawerSelectedColor = colors[0];
+  }
+  renderStyleDrawerContent(st, styleSkus, state.drawerSelectedColor);
+
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-backdrop').classList.add('open');
+}
+
+function renderStyleDrawerContent(st, styleSkus, selectedColor) {
+  // 头部
+  const seriesColor = {
+    '经典商务系列':'#1e40af','新商务系列':'#0891b2','商旅系列':'#0d9488',
+    '轻运动户外系列':'#65a30d','跨系列基础款':'#94a3b8'
+  };
+  const layerBadge = st.lockedLayer
+    ? `<span class="badge-layer l-${st.actualLayer}" style="font-size:12px">${st.actualLayer}</span>`
+    : `<span class="badge" style="background:var(--warning-soft);color:var(--warning);font-size:12px">⚠ 分层待定</span>`;
+
+  // 颜色 tabs
+  const colorTabs = [...new Set(styleSkus.map(s => s.color))].map(c =>
+    `<div class="color-tab ${c === selectedColor ? 'active' : ''}" onclick="selectDrawerColor('${c}')">
+      <span class="chip" style="background:${COLOR_HEX[c] || '#cbd5e1'}"></span>
+      <span>${c}</span>
+    </div>`
+  ).join('');
+
+  // 当前选中色的 SKU 详情
+  const sku = styleSkus.find(s => s.color === selectedColor);
+  let skuDetailHtml = '';
+  if (sku) {
+    const mu = calcMarkUp(sku);
+    const ms = muStatus(sku, sku.layer);
+    const ns = nodeStatus(sku);
+    const red = sku.layer ? state.baseline.layers[sku.layer].redLine : 0;
+    const minPrice = red ? Math.ceil(sku.cost * red / 100) * 100 : 0;
+
+    // 成本拆解
+    const fabricPct = sku.layer === '形象款' ? 0.62 : (sku.layer === '复购新款' ? 0.52 : 0.45);
+    const fabric = Math.round(sku.cost * fabricPct);
+    const labor  = Math.round(sku.cost * 0.22);
+    const acc    = Math.round(sku.cost * 0.10);
+    const other  = sku.cost - fabric - labor - acc;
+
+    skuDetailHtml = `
+      <div class="drawer-stat-row">
+        <div class="drawer-stat"><div class="lbl">企划价</div><div class="val">${fmt.money(sku.price)}</div></div>
+        <div class="drawer-stat"><div class="lbl">实际成本</div><div class="val">${fmt.money(sku.cost)}</div></div>
+      </div>
+      <div class="drawer-stat-row">
+        <div class="drawer-stat"><div class="lbl">计算倍率</div><div class="val ${ms==='danger'?'danger':ms==='warn'?'warn':'ok'}">${mu.toFixed(2)}x</div></div>
+        <div class="drawer-stat"><div class="lbl">${sku.layer||'未锁定'} 红线</div><div class="val">${red ? red.toFixed(1) + 'x' : '—'}</div></div>
+      </div>
+      <div style="margin:14px 0">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">成本拆解</div>
+        <div class="cost-bar"><div class="top"><span class="n">面料</span><span class="p">${fmt.money(fabric)} (${Math.round(fabricPct*100)}%)</span></div><div class="bar"><div class="fill ${ms==='danger'?'over':'ok'}" style="width:${fabricPct*100}%"></div></div></div>
+        <div class="cost-bar"><div class="top"><span class="n">人工</span><span class="p">${fmt.money(labor)} (${Math.round(labor/sku.cost*100)}%)</span></div><div class="bar"><div class="fill ok" style="width:${labor/sku.cost*100}%"></div></div></div>
+        <div class="cost-bar"><div class="top"><span class="n">辅料</span><span class="p">${fmt.money(acc)} (${Math.round(acc/sku.cost*100)}%)</span></div><div class="bar"><div class="fill ok" style="width:${acc/sku.cost*100}%"></div></div></div>
+        <div class="cost-bar"><div class="top"><span class="n">其他</span><span class="p">${fmt.money(other)} (${Math.round(other/sku.cost*100)}%)</span></div><div class="bar"><div class="fill ok" style="width:${other/sku.cost*100}%"></div></div></div>
+      </div>
+      ${red ? `
+        <div style="background:var(--accent-soft);border:1px solid #bfdbfe;border-radius:0;padding:12px;margin-top:14px">
+          <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">守住 ${red.toFixed(1)}x 红线所需最低吊牌</div>
+          <div style="font-size:18px;font-weight:600;color:var(--success);font-variant-numeric:tabular-nums">${fmt.money(minPrice)}</div>
+        </div>
+      ` : ''}
+    `;
+  }
+
+  // 3 色对比表
+  const compareTable = styleSkus.map(s => {
+    const sMu = calcMarkUp(s);
+    const sMs = muStatus(s, s.layer);
+    return `
+      <tr onclick="event.stopPropagation();selectDrawerColor('${s.color}')" style="cursor:pointer;${s.color === selectedColor ? 'background:var(--accent-soft)' : ''}">
+        <td>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="display:inline-block;width:14px;height:14px;border-radius:0;background:${COLOR_HEX[s.color] || '#cbd5e1'};border:1px solid rgba(0,0,0,.1)"></span>
+            ${s.color}${s.color === selectedColor ? ' <span class="muted" style="font-size:12px">· 当前</span>' : ''}
+          </div>
+        </td>
+        <td><span class="mono" style="font-size:12px">${s.skuCode}</span></td>
+        <td class="num">${fmt.money(s.cost)}</td>
+        <td class="num ${sMs==='danger'?'danger-text':sMs==='warn'?'warn-text':'ok-text'}"><strong>${sMu.toFixed(2)}</strong></td>
+        <td>${s.node}${s.delay>0?` <span class="warn-text" style="font-size:12px">+${s.delay}d</span>`:''}</td>
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('drawer-ttl').innerHTML = `
+    <span style="display:inline-block;padding:2px 8px;border-radius:0;background:${seriesColor[st.series]}20;color:${seriesColor[st.series]};font-size:12px;font-weight:600;margin-right:8px">${st.series}</span>
+    ${st.styleName}
+  `;
+  document.getElementById('drawer-sub').innerHTML = `
+    <span style="display:inline-block;width:6px;height:6px;border-radius:0;background:${seriesColor[st.series]};margin-right:6px"></span>
+    ${styleSkus.length} 色 · ${st.category} · 目标价 ${fmt.money(st.targetPrice)} · ${layerBadge}
+  `;
+
+  document.getElementById('drawer-body').innerHTML = `
+    <div class="drawer-img" style="${sku?.image ? `background-image:url(${sku.image});background-size:cover;background-position:center;` : ''}">${sku?.image ? '' : '款式图'}</div>
+
+    <div class="color-tabs" style="margin-bottom:14px">${colorTabs}</div>
+
+    <h3 style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">${selectedColor} · SKU 详情</h3>
+    ${skuDetailHtml}
+
+    <h3 style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin:18px 0 8px">该款 ${styleSkus.length} 色对比</h3>
+    <table class="data sku-compare-table" style="font-size:12px">
+      <thead><tr><th>颜色</th><th>SKU</th><th class="num">成本</th><th class="num">倍率</th><th>节点</th></tr></thead>
+      <tbody>${compareTable}</tbody>
+    </table>
+  `;
+}
+
+function selectDrawerColor(color) {
+  state.drawerSelectedColor = color;
+  if (state.drawerStyleId) {
+    const st = getStyle(state.drawerStyleId);
+    if (st) {
+      const styleSkus = getSkusByStyle(state.drawerStyleId);
+      renderStyleDrawerContent(st, styleSkus, color);
+    }
+  }
+}
+
+function openDrawer(id) {
+  // 路由：STY- 开头走款级，其他走 SKU 级
+  if (typeof id === 'string' && id.startsWith('STY-')) {
+    return openStyleDrawer(id);
+  }
+  const s = state.skus.find(x => x.id === id);
+  if (!s) return;
+  state.drawerSkuId = id;
+
+  const b = state.baseline;
+  const mu = calcMarkUp(s);
+  const ms = muStatus(s, s.layer);
+  const ns = nodeStatus(s);
+  const red = s.layer ? b.layers[s.layer].redLine : 0;
+  const minPrice = red ? Math.ceil(s.cost * red / 100) * 100 : 0;
+
+  // Simulated cost breakdown
+  const total = s.cost;
+  const fabric = Math.round(total * (s.layer === '形象款' ? 0.62 : (s.layer === '复购新款' ? 0.52 : 0.45)));
+  const labor  = Math.round(total * 0.22);
+  const acc    = Math.round(total * 0.10);
+  const other  = total - fabric - labor - acc;
+
+  // simulate fabric overrun for red items
+  const fabricPct = fabric / total;
+  const fabricOver = ms === 'danger' && s.layer === '形象款';
+  const fabricPlanned = fabricOver ? Math.round(fabric * 0.78) : fabric;
+
+  // pull sales insight for category
+  const cat = state.sales.categories.find(c => c.name === s.cat);
+  const discountTxt = cat ? `本季 ${s.cat} 折扣率已加深至 <strong>${fmt.pct(cat.discount)}</strong>` : '';
+
+  document.getElementById('drawer-ttl').textContent = s.name;
+  document.getElementById('drawer-sub').textContent = `${s.id} · ${s.layer} · ${s.cat}`;
+
+  document.getElementById('drawer-body').innerHTML = `
+    <div class="drawer-img">款式图 · ${s.id}</div>
+
+    <div class="drawer-stat-row">
+      <div class="drawer-stat">
+        <div class="lbl">企划价 (吊牌)</div>
+        <div class="val">${fmt.money(s.price)}</div>
+      </div>
+      <div class="drawer-stat">
+        <div class="lbl">实际成本</div>
+        <div class="val">${fmt.money(s.cost)}</div>
+      </div>
+    </div>
+
+    <div class="drawer-stat-row">
+      <div class="drawer-stat">
+        <div class="lbl">计算倍率</div>
+        <div class="val ${ms==='danger'?'danger':ms==='warn'?'warn':'ok'}">${mu.toFixed(2)}x</div>
+      </div>
+      <div class="drawer-stat">
+        <div class="lbl">${s.layer}红线</div>
+        <div class="val">${red.toFixed(1)}x</div>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="lbl">成本拆解</div>
+      <div class="cost-bar">
+        <div class="top"><span class="n">面料</span><span class="p">${fmt.money(fabric)} (${Math.round(fabricPct*100)}%)</span></div>
+        <div class="bar"><div class="fill ${fabricOver?'over':'ok'}" style="width:${fabricPct*100}%"></div></div>
+        ${fabricOver ? `<div style="font-size:12px;color:var(--danger);margin-top:4px">↑ 面料成本超企划 ${Math.round((fabric-fabricPlanned)/fabricPlanned*100)}% (企划 ${fmt.money(fabricPlanned)})</div>` : ''}
+      </div>
+      <div class="cost-bar">
+        <div class="top"><span class="n">人工</span><span class="p">${fmt.money(labor)} (${Math.round(labor/total*100)}%)</span></div>
+        <div class="bar"><div class="fill ok" style="width:${labor/total*100}%"></div></div>
+      </div>
+      <div class="cost-bar">
+        <div class="top"><span class="n">辅料</span><span class="p">${fmt.money(acc)} (${Math.round(acc/total*100)}%)</span></div>
+        <div class="bar"><div class="fill ok" style="width:${acc/total*100}%"></div></div>
+      </div>
+      <div class="cost-bar">
+        <div class="top"><span class="n">其他</span><span class="p">${fmt.money(other)} (${Math.round(other/total*100)}%)</span></div>
+        <div class="bar"><div class="fill ok" style="width:${other/total*100}%"></div></div>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="lbl">建议零售价区间（期货"定倍"辅助）</div>
+      <div class="drawer-stat" style="background:var(--accent-soft);border:1px solid #bfdbfe">
+        <div class="lbl">守住 ${red.toFixed(1)}x 红线所需最低吊牌</div>
+        <div class="val ok-text" style="font-size:22px">${fmt.money(minPrice)}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:8px">
+        当前企划价 ${fmt.money(s.price)} ${s.price >= minPrice ? '<span class="ok-text">✓ 已守住</span>' : `<span class="danger-text">↓ 需上调 ${fmt.money(minPrice - s.price)}</span>`}
+      </div>
+    </div>
+
+    ${discountTxt ? `
+      <div class="insight-card ${ms==='danger'?'danger':'warn'}" style="margin-top:16px">
+        <div class="ico">🔗</div>
+        <div class="body">
+          <div class="t">联动销售数据</div>
+          <div class="d">${discountTxt}，若维持当前倍率，渠道利润为负。</div>
+        </div>
+      </div>
+    ` : ''}
+
+    <div class="drawer-section" style="margin-top:20px">
+      <div class="lbl">当前节点</div>
+      <div style="font-size:13px"><strong>${s.node}</strong> · 计划 ${s.planned} · 实际 ${s.actual}</div>
+      <div style="margin-top:6px">
+        ${ns==='danger'?'<span class="badge badge-danger"><span class="badge-dot"></span> 滞后 '+s.delay+' 天</span>':
+          ns==='warn'?'<span class="badge badge-warning"><span class="badge-dot"></span> 滞后 '+s.delay+' 天</span>':
+          '<span class="badge badge-success"><span class="badge-dot"></span> 节点正常</span>'}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-backdrop').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-backdrop').classList.remove('open');
+}
+
+/* =====================================================
+   FILE UPLOAD HANDLERS
+===================================================== */
+function handleBaselineUpload(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const wb = XLSX.read(evt.target.result, { type: 'array' });
+      toast('success', '✓ 企划底表已上传并解析');
+    } catch (err) {
+      toast('warn', '⚠ 解析失败，请检查 Excel 格式');
+    }
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+function handleSalesUpload(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  toast('success', '✓ 销售数据已更新 · ' + f.name);
+}
+
+/* =====================================================
+   ACTIONS
+===================================================== */
+function generateTaskList() {
+  const ids = Array.from(state.selectedRisk);
+  if (!ids.length) {
+    toast('warn', '⚠ 请先勾选需整改的款式');
+    return;
+  }
+  toast('success', `✓ 已生成 ${ids.length} 个会议任务，已分派至责任人`);
+  clearRiskSelection();
+}
+
+function exportSnapshot() {
+  toast('success', '📄 会议纪要快照已生成（演示版）');
+  // Real implementation: html2canvas + jsPDF
+  // Skipped here for brevity — see console for hook
+  console.log('Snapshot hook:', { baseline: state.baseline, filters: { filter: state.filter, tab: state.tab }, timestamp: new Date().toISOString() });
+}
+
+/* =====================================================
+   TOAST
+===================================================== */
+function toast(type, msg) {
+  const host = document.getElementById('toast-host');
+  const t = el(`<div class="toast ${type}">${msg}</div>`);
+  host.appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(20px)';
+    t.style.transition = 'all .25s ease';
+    setTimeout(() => t.remove(), 250);
+  }, 3000);
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+function renderAll() {
+  renderBaseline();
+  renderCompletion();
+  renderSeriesProgress();
+  renderMatrix();
+  renderStyles();
+  renderColorGrid();
+  renderImports();
+  renderCounts();
+  renderTable();
+  renderSales();
+  renderRisk();
+}
+
+function loadDemo() {
+  state.baseline = buildBaseline();
+  state.styles = buildStyles();
+  state.skus = buildSkus(state.styles);
+  state.imports = buildImports();
+  state.sales = buildSales();
+  state.selectedRisk.clear();
+  // 默认选中第一款进行 sku-detail 演示
+  if (!state.selectedStyleId || !getStyle(state.selectedStyleId)) {
+    state.selectedStyleId = state.styles[0].styleId;
+  }
+  const firstStyleSkus = getSkusByStyle(state.selectedStyleId);
+  state.selectedColor = firstStyleSkus[0]?.color || null;
+  renderAll();
+  toast('success', '↻ 已加载演示数据 · 16 款 × 3 色 = 48 SKU');
+}
+
+// ── tab / filter wiring ────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    state.tab = t.dataset.tab;
+    renderTable();
+  });
+});
+document.querySelectorAll('.seg-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    // 区分 seg-btn 属于哪一组
+    if (b.dataset.colorFilter !== undefined) {
+      // 色维度筛选
+      const filter = b.dataset.colorFilter;
+      document.querySelectorAll('[data-color-filter]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const wrap = document.getElementById('color-grid');
+      if (wrap) {
+        Array.from(wrap.children).forEach(card => {
+          if (filter === 'all') card.style.display = '';
+          else if (filter === 'danger') {
+            const isRed = card.style.borderLeftColor.includes('220, 38, 38') || card.dataset.red === '1';
+            card.style.display = isRed ? '' : 'none';
+          }
+        });
+      }
+      return;
+    }
+    if (b.dataset.view) {
+      document.querySelectorAll('.seg-btn[data-view]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      state.filter = b.dataset.view;
+      renderTable();
+      return;
+    }
+  });
+});
+document.getElementById('filter-input').addEventListener('input', e => {
+  state.search = e.target.value;
+  renderTable();
+});
+
+// ── nav highlight on scroll ────────────────────────────
+const navLinks = document.querySelectorAll('nav.top-nav a');
+const sections = ['sec-baseline','sec-style','sec-color','sec-sales','sec-decisions']
+  .map(id => document.getElementById(id));
+window.addEventListener('scroll', () => {
+  let active = sections[0].id;
+  sections.forEach(s => {
+    const r = s.getBoundingClientRect();
+    if (r.top < 120) active = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + active);
+  });
+});
+
+// ── upload drag-drop ───────────────────────────────────
+['baseline-upload', 'sales-upload'].forEach(id => {
+  const zone = document.getElementById(id);
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    toast('success', '✓ 文件已接收，已开始解析');
+  });
+});
+
+// update-dropzone 通用拖拽 — 接受多个文件
+(function bindUpdateDropzone() {
+  const zone = document.getElementById('update-dropzone');
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer.files || []);
+    if (!files.length) return;
+    // 复用 handleProgressUpdate 的逻辑
+    const fakeEvent = { target: { files } };
+    handleProgressUpdate(fakeEvent);
+  });
+})();
+
+// ── go ────────────────────────────────────────────────
+loadDemo();
+
+// countdown to sample date
+const cdEl = document.getElementById('countdown');
+const today = new Date('2026-08-16');
+const target = new Date('2026-09-13');
+const days = Math.ceil((target - today) / 86400000);
+if (cdEl) cdEl.textContent = days;
+</script>
+</body>
+</html>
